@@ -26,6 +26,8 @@ import org.apache.paimon.table.system.SourceTableLineageTable;
 import org.apache.paimon.utils.BlockingIterator;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.flink.table.api.EnvironmentSettings;
+import org.apache.flink.table.api.TableEnvironment;
 import org.apache.flink.table.catalog.exceptions.PartitionNotExistException;
 import org.apache.flink.table.catalog.exceptions.TableNotPartitionedException;
 import org.apache.flink.types.Row;
@@ -875,5 +877,31 @@ public class CatalogTableITCase extends CatalogITCaseBase {
                 "INSERT INTO T /*+ OPTIONS('full-compaction.delta-commits' = '100') */ VALUES (2, 21), (3, 31)");
         result = sql("SELECT k, v FROM T$ro ORDER BY k");
         assertThat(result).containsExactly(Row.of(1, 11), Row.of(2, 21), Row.of(3, 31));
+    }
+
+    @Test
+    public void testStreamingReadOverxwrite() {
+        final EnvironmentSettings settings =
+                EnvironmentSettings.newInstance().inBatchMode().build();
+        final TableEnvironment env = TableEnvironment.create(settings);
+
+        env.executeSql(
+                "CREATE CATALOG my_catalog WITH (\n"
+                        + "    'type'='paimon',\n"
+                        + "    'warehouse'='file:/Users/zhouli/Workspace/data/paimon/mt'\n"
+                        + ");");
+        env.executeSql("USE CATALOG my_catalog;");
+        //        env.executeSql(
+        //                "CREATE TABLE word_count (\n"
+        //                        + "    word STRING PRIMARY KEY NOT ENFORCED,\n"
+        //                        + "    cnt BIGINT\n"
+        //                        + ");");
+        //                env.executeSql(
+        //                        "CREATE MATERIALIZED TABLE word_table_materialized_continous
+        // (PRIMARY KEY(word) NOT ENFORCED)\n"
+        //                                + "FRESHNESS = INTERVAL '3' MINUTE AS  select * from
+        // word_count;");
+
+        env.executeSql("select * from word_table_materialized_continous").print();
     }
 }

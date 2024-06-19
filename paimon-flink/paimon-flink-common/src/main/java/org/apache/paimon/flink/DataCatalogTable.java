@@ -37,7 +37,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 /** A {@link CatalogTableImpl} to wrap {@link FileStoreTable}. */
-public class DataCatalogTable extends CatalogTableImpl {
+public class DataCatalogTable extends CatalogTableImpl implements PaimonTableProvider {
 
     private final Table table;
     private final Map<String, String> nonPhysicalColumnComments;
@@ -54,6 +54,7 @@ public class DataCatalogTable extends CatalogTableImpl {
         this.nonPhysicalColumnComments = nonPhysicalColumnComments;
     }
 
+    @Override
     public Table table() {
         return table;
     }

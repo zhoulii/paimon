@@ -252,8 +252,8 @@ public abstract class AbstractFlinkTableFactory
         newOptions.putAll(dynamicOptions);
 
         // notice that the Paimon table schema must be the same with the Flink's
-        if (origin instanceof DataCatalogTable) {
-            FileStoreTable fileStoreTable = (FileStoreTable) ((DataCatalogTable) origin).table();
+        if (origin instanceof PaimonTableProvider) {
+            FileStoreTable fileStoreTable = (FileStoreTable) ((PaimonTableProvider) origin).table();
             table = fileStoreTable.copyWithoutTimeTravel(newOptions);
         } else {
             table =

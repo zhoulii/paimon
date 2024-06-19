@@ -42,14 +42,14 @@ import org.apache.flink.table.catalog.CatalogBaseTable;
 import org.apache.flink.table.catalog.CatalogDatabase;
 import org.apache.flink.table.catalog.CatalogDatabaseImpl;
 import org.apache.flink.table.catalog.CatalogFunction;
+import org.apache.flink.table.catalog.CatalogMaterializedTable;
 import org.apache.flink.table.catalog.CatalogPartition;
 import org.apache.flink.table.catalog.CatalogPartitionSpec;
 import org.apache.flink.table.catalog.CatalogTable;
-import org.apache.flink.table.catalog.CatalogTableImpl;
 import org.apache.flink.table.catalog.Column;
+import org.apache.flink.table.catalog.IntervalFreshness;
 import org.apache.flink.table.catalog.ObjectPath;
 import org.apache.flink.table.catalog.ResolvedCatalogBaseTable;
-import org.apache.flink.table.catalog.ResolvedCatalogTable;
 import org.apache.flink.table.catalog.ResolvedSchema;
 import org.apache.flink.table.catalog.TableChange;
 import org.apache.flink.table.catalog.TableChange.AddColumn;
@@ -66,6 +66,7 @@ import org.apache.flink.table.catalog.TableChange.ModifyPhysicalColumnType;
 import org.apache.flink.table.catalog.TableChange.ModifyWatermark;
 import org.apache.flink.table.catalog.TableChange.ResetOption;
 import org.apache.flink.table.catalog.TableChange.SetOption;
+import org.apache.flink.table.catalog.UniqueConstraint;
 import org.apache.flink.table.catalog.WatermarkSpec;
 import org.apache.flink.table.catalog.exceptions.CatalogException;
 import org.apache.flink.table.catalog.exceptions.DatabaseAlreadyExistException;
@@ -110,6 +111,8 @@ import static org.apache.flink.table.descriptors.DescriptorProperties.WATERMARK_
 import static org.apache.flink.table.descriptors.Schema.SCHEMA;
 import static org.apache.flink.table.factories.FactoryUtil.CONNECTOR;
 import static org.apache.flink.table.types.utils.TypeConversions.fromLogicalToDataType;
+import static org.apache.flink.table.utils.EncodingUtils.decodeBase64ToBytes;
+import static org.apache.flink.table.utils.EncodingUtils.encodeBytesToBase64;
 import static org.apache.paimon.CoreOptions.PATH;
 import static org.apache.paimon.flink.FlinkCatalogOptions.DISABLE_CREATE_TABLE_IN_DEFAULT_DB;
 import static org.apache.paimon.flink.FlinkCatalogOptions.LOG_SYSTEM_AUTO_REGISTER;
@@ -139,6 +142,26 @@ public class FlinkCatalog extends AbstractCatalog {
     private final Duration logStoreAutoRegisterTimeout;
 
     private final boolean disableCreateTableInDefaultDatabase;
+
+    private static final String COMMENT = "comment";
+
+    private static final String SNAPSHOT = "snapshot";
+
+    private static final String DEFINITION_QUERY = "definition-query";
+
+    private static final String FRESHNESS_INTERVAL = "freshness-interval";
+
+    private static final String FRESHNESS_UNIT = "freshness-unit";
+
+    private static final String LOGICAL_REFRESH_MODE = "logical-refresh-mode";
+
+    private static final String REFRESH_MODE = "refresh-mode";
+
+    private static final String REFRESH_STATUS = "refresh-status";
+
+    private static final String REFRESH_HANDLER_DESC = "refresh-handler-desc";
+
+    private static final String REFRESH_HANDLER_BYTES = "refresh-handler-bytes";
 
     public FlinkCatalog(
             Catalog catalog,
@@ -238,7 +261,7 @@ public class FlinkCatalog extends AbstractCatalog {
     }
 
     @Override
-    public CatalogTable getTable(ObjectPath tablePath)
+    public CatalogBaseTable getTable(ObjectPath tablePath)
             throws TableNotExistException, CatalogException {
         return getTable(tablePath, null);
     }
@@ -246,12 +269,12 @@ public class FlinkCatalog extends AbstractCatalog {
     /**
      * Do not annotate with <code>@override</code> here to maintain compatibility with Flink 1.17-.
      */
-    public CatalogTable getTable(ObjectPath tablePath, long timestamp)
+    public CatalogBaseTable getTable(ObjectPath tablePath, long timestamp)
             throws TableNotExistException, CatalogException {
         return getTable(tablePath, Long.valueOf(timestamp));
     }
 
-    private CatalogTable getTable(ObjectPath tablePath, @Nullable Long timestamp)
+    private CatalogBaseTable getTable(ObjectPath tablePath, @Nullable Long timestamp)
             throws TableNotExistException {
         Table table;
         try {
@@ -299,7 +322,7 @@ public class FlinkCatalog extends AbstractCatalog {
     @Override
     public void createTable(ObjectPath tablePath, CatalogBaseTable table, boolean ignoreIfExists)
             throws TableAlreadyExistException, DatabaseNotExistException, CatalogException {
-        if (!(table instanceof CatalogTable)) {
+        if (!(table instanceof CatalogTable || table instanceof CatalogMaterializedTable)) {
             throw new UnsupportedOperationException(
                     "Only support CatalogTable, but is: " + table.getClass());
         }
@@ -314,7 +337,7 @@ public class FlinkCatalog extends AbstractCatalog {
         // the returned value of "table.getOptions" may be unmodifiable (for example from
         // TableDescriptor)
         Map<String, String> options = new HashMap<>(table.getOptions());
-        Schema paimonSchema = buildPaimonSchema(identifier, (CatalogTable) table, options);
+        Schema paimonSchema = buildPaimonSchema(identifier, table, options);
 
         boolean unRegisterLogSystem = false;
         try {
@@ -333,7 +356,7 @@ public class FlinkCatalog extends AbstractCatalog {
     }
 
     protected Schema buildPaimonSchema(
-            Identifier identifier, CatalogTable catalogTable, Map<String, String> options) {
+            Identifier identifier, CatalogBaseTable catalogTable, Map<String, String> options) {
         String connector = options.get(CONNECTOR.key());
         options.remove(CONNECTOR.key());
         if (!StringUtils.isNullOrWhitespaceOnly(connector)
@@ -361,7 +384,44 @@ public class FlinkCatalog extends AbstractCatalog {
         // remove table path
         options.remove(PATH.key());
 
-        return fromCatalogTable(catalogTable.copy(options));
+        if (catalogTable instanceof CatalogTable) {
+            return fromCatalogTable(((CatalogTable) catalogTable).copy(options));
+        } else {
+            buildMaterializedTableOption((CatalogMaterializedTable) catalogTable, options);
+            return fromCatalogTable(((CatalogMaterializedTable) catalogTable).copy(options));
+        }
+    }
+
+    private void buildMaterializedTableOption(
+            CatalogMaterializedTable catalogMaterializedTable, Map<String, String> options) {
+        final String comment = catalogMaterializedTable.getComment();
+        if (comment != null && !comment.isEmpty()) {
+            options.put(COMMENT, comment);
+        }
+
+        final Optional<Long> snapshot = catalogMaterializedTable.getSnapshot();
+        snapshot.ifPresent(snapshotId -> options.put(SNAPSHOT, Long.toString(snapshotId)));
+
+        options.put(DEFINITION_QUERY, catalogMaterializedTable.getDefinitionQuery());
+
+        IntervalFreshness intervalFreshness = catalogMaterializedTable.getDefinitionFreshness();
+        options.put(FRESHNESS_INTERVAL, intervalFreshness.getInterval());
+        options.put(FRESHNESS_UNIT, intervalFreshness.getTimeUnit().name());
+
+        options.put(LOGICAL_REFRESH_MODE, catalogMaterializedTable.getLogicalRefreshMode().name());
+        options.put(REFRESH_MODE, catalogMaterializedTable.getRefreshMode().name());
+        options.put(REFRESH_STATUS, catalogMaterializedTable.getRefreshStatus().name());
+
+        catalogMaterializedTable
+                .getRefreshHandlerDescription()
+                .ifPresent(
+                        refreshHandlerDesc ->
+                                options.put(REFRESH_HANDLER_DESC, refreshHandlerDesc));
+        if (catalogMaterializedTable.getSerializedRefreshHandler() != null) {
+            options.put(
+                    REFRESH_HANDLER_BYTES,
+                    encodeBytesToBase64(catalogMaterializedTable.getSerializedRefreshHandler()));
+        }
     }
 
     private List<SchemaChange> toSchemaChange(
@@ -475,6 +535,26 @@ public class FlinkCatalog extends AbstractCatalog {
                 throw new UnsupportedOperationException(
                         "Change is not supported: " + change.getClass());
             }
+        } else if (change instanceof TableChange.ModifyRefreshStatus) {
+            schemaChanges.add(
+                    SchemaChange.setOption(
+                            REFRESH_STATUS,
+                            ((TableChange.ModifyRefreshStatus) change)
+                                    .getRefreshStatus()
+                                    .toString()));
+            return schemaChanges;
+        } else if (change instanceof TableChange.ModifyRefreshHandler) {
+            schemaChanges.add(
+                    SchemaChange.setOption(
+                            REFRESH_HANDLER_DESC,
+                            ((TableChange.ModifyRefreshHandler) change).getRefreshHandlerDesc()));
+            schemaChanges.add(
+                    SchemaChange.setOption(
+                            REFRESH_HANDLER_BYTES,
+                            encodeBytesToBase64(
+                                    ((TableChange.ModifyRefreshHandler) change)
+                                            .getRefreshHandlerBytes())));
+            return schemaChanges;
         }
         throw new UnsupportedOperationException("Change is not supported: " + change.getClass());
     }
@@ -487,10 +567,10 @@ public class FlinkCatalog extends AbstractCatalog {
             return;
         }
 
-        CatalogTable table = getTable(tablePath);
+        CatalogTable table = (CatalogTable) getTable(tablePath);
 
         // Currently, Flink SQL only support altering table properties.
-        validateAlterTable(table, (CatalogTable) newTable);
+        validateAlterTable(table, newTable);
 
         List<SchemaChange> changes = new ArrayList<>();
         Map<String, String> oldProperties = table.getOptions();
@@ -546,7 +626,7 @@ public class FlinkCatalog extends AbstractCatalog {
         }
 
         Preconditions.checkArgument(table instanceof FileStoreTable, "Can't alter system table.");
-        validateAlterTable(toCatalogTable(table), (CatalogTable) newTable);
+        validateAlterTable(toCatalogTable(table), newTable);
         Map<String, Integer> oldTableNonPhysicalColumnIndex =
                 FlinkCatalogPropertiesUtil.nonPhysicalColumns(
                         table.options(), table.rowType().getFieldNames());
@@ -639,7 +719,7 @@ public class FlinkCatalog extends AbstractCatalog {
                                 .asSerializableString()));
     }
 
-    private static void validateAlterTable(CatalogTable ct1, CatalogTable ct2) {
+    private static void validateAlterTable(CatalogBaseTable ct1, CatalogBaseTable ct2) {
         if (ct1 instanceof SystemCatalogTable) {
             throw new UnsupportedOperationException("Can't alter system table.");
         }
@@ -663,9 +743,23 @@ public class FlinkCatalog extends AbstractCatalog {
             throw new UnsupportedOperationException("Altering primary key is not supported yet.");
         }
 
-        if (!ct1.getPartitionKeys().equals(ct2.getPartitionKeys())) {
-            throw new UnsupportedOperationException(
-                    "Altering partition keys is not supported yet.");
+        if (ct1 instanceof CatalogTable && ct2 instanceof CatalogTable) {
+            if (!((CatalogTable) ct1)
+                    .getPartitionKeys()
+                    .equals(((CatalogTable) ct2).getPartitionKeys())) {
+                throw new UnsupportedOperationException(
+                        "Altering partitioned table is not supported yet.");
+            }
+        } else if (ct1 instanceof CatalogMaterializedTable
+                && ct2 instanceof CatalogMaterializedTable) {
+            if (!((CatalogMaterializedTable) ct1)
+                    .getPartitionKeys()
+                    .equals(((CatalogMaterializedTable) ct2).getPartitionKeys())) {
+                throw new UnsupportedOperationException(
+                        "Altering partitioned table is not supported yet.");
+            }
+        } else {
+            throw new UnsupportedOperationException("Altering table type is not supported.");
         }
     }
 
@@ -681,7 +775,7 @@ public class FlinkCatalog extends AbstractCatalog {
         }
     }
 
-    private CatalogTableImpl toCatalogTable(Table table) {
+    private CatalogBaseTable toCatalogTable(Table table) {
         Map<String, String> newOptions = new HashMap<>(table.options());
 
         TableSchema.Builder builder = TableSchema.builder();
@@ -718,7 +812,7 @@ public class FlinkCatalog extends AbstractCatalog {
         }
 
         // add primary keys
-        if (table.primaryKeys().size() > 0) {
+        if (!table.primaryKeys().isEmpty()) {
             builder.primaryKey(
                     table.primaryKeys().stream().collect(Collectors.joining("_", "PK_", "")),
                     table.primaryKeys().toArray(new String[0]));
@@ -731,6 +825,30 @@ public class FlinkCatalog extends AbstractCatalog {
         removeProperties.putTableSchema(SCHEMA, schema);
         removeProperties.asMap().keySet().forEach(newOptions::remove);
 
+        if (!StringUtils.isNullOrWhitespaceOnly(newOptions.get(DEFINITION_QUERY))) {
+            return new DataCatalogMaterializedTable(
+                    table,
+                    schema,
+                    table.comment().orElse(""),
+                    table.partitionKeys(),
+                    newOptions,
+                    newOptions.get(SNAPSHOT) == null
+                            ? null
+                            : Long.valueOf(newOptions.get(SNAPSHOT)),
+                    newOptions.get(DEFINITION_QUERY),
+                    IntervalFreshness.of(
+                            newOptions.get(FRESHNESS_INTERVAL),
+                            IntervalFreshness.TimeUnit.valueOf(newOptions.get(FRESHNESS_UNIT))),
+                    CatalogMaterializedTable.LogicalRefreshMode.valueOf(
+                            newOptions.get(LOGICAL_REFRESH_MODE)),
+                    CatalogMaterializedTable.RefreshMode.valueOf(newOptions.get(REFRESH_MODE)),
+                    CatalogMaterializedTable.RefreshStatus.valueOf(newOptions.get(REFRESH_STATUS)),
+                    newOptions.get(REFRESH_HANDLER_DESC),
+                    StringUtils.isNullOrWhitespaceOnly(newOptions.get(REFRESH_HANDLER_BYTES))
+                            ? null
+                            : decodeBase64ToBytes(newOptions.get(REFRESH_HANDLER_BYTES)));
+        }
+
         return new DataCatalogTable(
                 table,
                 schema,
@@ -740,8 +858,8 @@ public class FlinkCatalog extends AbstractCatalog {
                 nonPhysicalColumnComments);
     }
 
-    public static Schema fromCatalogTable(CatalogTable table) {
-        ResolvedCatalogTable catalogTable = (ResolvedCatalogTable) table;
+    public static Schema fromCatalogTable(CatalogBaseTable table) {
+        ResolvedCatalogBaseTable catalogTable = (ResolvedCatalogBaseTable) table;
         ResolvedSchema schema = catalogTable.getResolvedSchema();
         RowType rowType = (RowType) schema.toPhysicalRowDataType().getLogicalType();
 
@@ -756,9 +874,9 @@ public class FlinkCatalog extends AbstractCatalog {
                         .options(options)
                         .primaryKey(
                                 schema.getPrimaryKey()
-                                        .map(pk -> pk.getColumns())
+                                        .map(UniqueConstraint::getColumns)
                                         .orElse(Collections.emptyList()))
-                        .partitionKeys(catalogTable.getPartitionKeys());
+                        .partitionKeys(getPartitionKeys(catalogTable));
         Map<String, String> columnComments = getColumnComments(catalogTable);
         rowType.getFields()
                 .forEach(
@@ -771,7 +889,18 @@ public class FlinkCatalog extends AbstractCatalog {
         return schemaBuilder.build();
     }
 
-    private static Map<String, String> getColumnComments(CatalogTable catalogTable) {
+    private static List<String> getPartitionKeys(CatalogBaseTable catalogTable) {
+        if (catalogTable instanceof CatalogTable) {
+            return ((CatalogTable) catalogTable).getPartitionKeys();
+        } else if (catalogTable instanceof CatalogMaterializedTable) {
+            return ((CatalogMaterializedTable) catalogTable).getPartitionKeys();
+        } else {
+            throw new UnsupportedOperationException(
+                    "Unsupported catalog table type: " + catalogTable.getClass().getName());
+        }
+    }
+
+    private static Map<String, String> getColumnComments(CatalogBaseTable catalogTable) {
         return catalogTable.getUnresolvedSchema().getColumns().stream()
                 .filter(c -> c.getComment().isPresent())
                 .collect(
