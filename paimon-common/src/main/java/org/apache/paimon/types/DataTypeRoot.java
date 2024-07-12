@@ -25,7 +25,9 @@ import java.util.EnumSet;
 import java.util.Set;
 
 /**
- * An enumeration of Data type roots containing static information about logical data types.
+ * DataType 实现类是类型的具体定义，DataTypeRoot 用于描述 DataType，主要是定义 DataType 属于哪个大类.
+ *
+ * <p>An enumeration of Data type roots containing static information about logical data types.
  *
  * <p>A root is an essential description of a {@link DataType} without additional parameters. For
  * example, a parameterized Data type {@code DECIMAL(12,3)} possesses all characteristics of its

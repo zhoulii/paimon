@@ -23,7 +23,9 @@ import org.apache.paimon.annotation.Public;
 import java.util.Objects;
 
 /**
- * Data type of a variable-length character string.
+ * varchar 与 string 类型的定义，string 类型就是 varchar(Integer.MAX_VALUE).
+ *
+ * <p>Data type of a variable-length character string.
  *
  * <p>A conversion from and to {@code byte[]} assumes UTF-8 encoding.
  *
@@ -76,6 +78,11 @@ public final class VarCharType extends DataType {
         return new VarCharType(isNullable, length);
     }
 
+    /**
+     * 转换结果形如： VARCHAR(10) VARCHAR(10) not null STRING.
+     *
+     * @return SQL String
+     */
     @Override
     public String asSQLString() {
         if (length == MAX_LENGTH) {

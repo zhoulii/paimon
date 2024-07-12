@@ -21,8 +21,11 @@ package org.apache.paimon.types;
 import org.apache.paimon.annotation.Public;
 
 /**
- * The visitor definition of {@link DataType}. The visitor transforms a data type into instances of
- * {@code R}.
+ * 访问者模式，DataType 的访问者接口，针对不同的 DataType 有不同的行为。比如 DataTypeToLogicalType 接收 paimon 的 DataType 类型转换为
+ * flink 中的 LogicalType 类型.
+ *
+ * <p>The visitor definition of {@link DataType}. The visitor transforms a data type into instances
+ * of {@code R}.
  *
  * @param <R> result type
  * @since 0.4.0

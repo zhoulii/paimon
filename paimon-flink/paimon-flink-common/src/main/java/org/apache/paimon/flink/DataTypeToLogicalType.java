@@ -47,7 +47,11 @@ import org.apache.flink.table.types.logical.LogicalType;
 import java.util.ArrayList;
 import java.util.List;
 
-/** Convert {@link DataType} to {@link LogicalType}. */
+/**
+ * 将 paimon 的 DataType 类型转换为 flink 中的 LogicalType 类型.
+ *
+ * <p>Convert {@link DataType} to {@link LogicalType}.
+ */
 public class DataTypeToLogicalType implements DataTypeVisitor<LogicalType> {
 
     public static final DataTypeToLogicalType INSTANCE = new DataTypeToLogicalType();

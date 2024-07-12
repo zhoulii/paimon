@@ -36,7 +36,9 @@ import java.util.Set;
  * additional information regarding copyright ownership. */
 
 /**
- * Describes the data type in the paimon ecosystem.
+ * paimon 类型系统的基类，主要包含两个字段：是否为空、DataTypeRoot 类型。可以查看子类了解更多，如 VarCharType.
+ *
+ * <p>Describes the data type in the paimon ecosystem.
  *
  * @see DataTypes
  * @since 0.4.0
@@ -148,8 +150,10 @@ public abstract class DataType implements Serializable {
     }
 
     /**
-     * Returns a string that summarizes this type as SQL standard string for printing to a console.
-     * An implementation might shorten long names or skips very specific properties.
+     * 将类型转换为 SQL 标准字符串，例如将一个 varchar 类型转换为 varchar(10) not null.
+     *
+     * <p>Returns a string that summarizes this type as SQL standard string for printing to a
+     * console. An implementation might shorten long names or skips very specific properties.
      */
     public abstract String asSQLString();
 
@@ -169,6 +173,13 @@ public abstract class DataType implements Serializable {
         return asSQLString();
     }
 
+    /**
+     * DataTypeVisitor 访问 DataType 类型，visit 方法接收一个 DataType 返回一个 R 类型.
+     *
+     * @param visitor DataTypeVisitor，有多种实现
+     * @return 转换结果
+     * @param <R> 转换结果泛型
+     */
     public abstract <R> R accept(DataTypeVisitor<R> visitor);
 
     public void collectFieldIds(Set<Integer> fieldIds) {}
