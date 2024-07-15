@@ -29,7 +29,9 @@ import java.util.Objects;
 import static org.apache.paimon.utils.Preconditions.checkNotNull;
 
 /**
- * An internal data structure representing data of {@link RowType}.
+ * InternalRow 的一个具体实现，使用对象数组来存储字段值.
+ *
+ * <p>An internal data structure representing data of {@link RowType}.
  *
  * <p>{@link GenericRow} is a generic implementation of {@link InternalRow} which is backed by an
  * array of Java {@link Object}. A {@link GenericRow} can have an arbitrary number of fields of

@@ -38,11 +38,13 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 /**
- * Data type of a sequence of fields. A field consists of a field name, field type, and an optional
- * description. The most specific type of a row of a table is a row type. In this case, each column
- * of the row corresponds to the field of the row type that has the same ordinal position as the
- * column. Compared to the SQL standard, an optional field description simplifies the handling with
- * complex structures.
+ * table 的 record 对应的就是 RowType 类型，RowType 中的每个字段由 DataField 进行封装.
+ *
+ * <p>Data type of a sequence of fields. A field consists of a field name, field type, and an
+ * optional description. The most specific type of a row of a table is a row type. In this case,
+ * each column of the row corresponds to the field of the row type that has the same ordinal
+ * position as the column. Compared to the SQL standard, an optional field description simplifies
+ * the handling with complex structures.
  *
  * @since 0.4.0
  */

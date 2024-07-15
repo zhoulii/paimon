@@ -30,7 +30,12 @@ import java.nio.ByteOrder;
 import static org.apache.paimon.utils.Preconditions.checkArgument;
 
 /**
- * An implementation of {@link InternalRow} which is backed by {@link MemorySegment} instead of
+ * InternalRow 的一个具体实现，使用 MemorySegment 来存储字段值，能够减少序列化、反序列化.
+ *
+ * <p>固定长度部分：header + null bit set + field values，对于具体 field value 来说，8 字节以内，直接存储，超过 8 字节，存储 offset
+ * + length（也占用 8 字节），真实 value 存储的另外的地方
+ *
+ * <p>An implementation of {@link InternalRow} which is backed by {@link MemorySegment} instead of
  * Object. It can significantly reduce the serialization/deserialization of Java objects.
  *
  * <p>A Row has two part: Fixed-length part and variable-length part.
@@ -69,11 +74,25 @@ public final class BinaryRow extends BinarySection implements InternalRow, DataS
         EMPTY_ROW.pointTo(MemorySegment.wrap(bytes), 0, size);
     }
 
+    /**
+     * 目的：8 字节对齐（header + null bit set 是 8 字节倍数），提高内存访问效率.
+     *
+     * <p>((arity + 63 + HEADER_SIZE_IN_BITS) / 64) * 8 - 需要 arity 个 bit 来标识 null 字段 -
+     * HEADER_SIZE_IN_BITS 占 8 bit - 加上 63 是为了总的位数至少到达下一个 64 位的边界
+     *
+     * <p>example-1：arity = 10，如果不加上 63 返回值就是 0 （10 + 63 + 8) / 64 * 8 = 8
+     *
+     * <p>example-2：arity = 70，如果不加上 63 返回值就是 8 （70 + 63 + 8) / 64 * 8 = 16
+     *
+     * @param arity 字段数
+     * @return 字节数
+     */
     public static int calculateBitSetWidthInBytes(int arity) {
         return ((arity + 63 + HEADER_SIZE_IN_BITS) / 64) * 8;
     }
 
     public static int calculateFixPartSizeInBytes(int arity) {
+        // 对于固定存储来说，每个字段占用 8 个字节
         return calculateBitSetWidthInBytes(arity) + 8 * arity;
     }
 
@@ -87,6 +106,7 @@ public final class BinaryRow extends BinarySection implements InternalRow, DataS
     }
 
     private int getFieldOffset(int pos) {
+        // 字段值的 position
         return offset + nullBitsSizeInBytes + pos * 8;
     }
 
@@ -425,6 +445,12 @@ public final class BinaryRow extends BinarySection implements InternalRow, DataS
         return row;
     }
 
+    /**
+     * 从一个 String 类型参数创建 BinaryRow.
+     *
+     * @param string 入参
+     * @return BinaryRow
+     */
     public static BinaryRow singleColumn(@Nullable String string) {
         BinaryString binaryString = string == null ? null : BinaryString.fromString(string);
         return singleColumn(binaryString);

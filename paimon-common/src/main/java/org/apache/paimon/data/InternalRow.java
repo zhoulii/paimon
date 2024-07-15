@@ -36,7 +36,9 @@ import static org.apache.paimon.types.DataTypeChecks.getScale;
  * additional information regarding copyright ownership. */
 
 /**
- * Base interface for an internal data structure representing data of {@link RowType}.
+ * RowType 类型对应的数据结构，使用 FieldGetter 获取具体字段的值，具体实现可参看 GenericRow 或 BinaryRow.
+ *
+ * <p>Base interface for an internal data structure representing data of {@link RowType}.
  *
  * <p>The mappings from SQL data types to the internal data structures are listed in the following
  * table:
@@ -235,7 +237,11 @@ public interface InternalRow extends DataGetters {
         };
     }
 
-    /** Accessor for getting the field of a row during runtime. */
+    /**
+     * 获取 row 中字段值的接口.
+     *
+     * <p>Accessor for getting the field of a row during runtime.
+     */
     interface FieldGetter extends Serializable {
         @Nullable
         Object getFieldOrNull(InternalRow row);

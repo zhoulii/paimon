@@ -32,7 +32,9 @@ import static org.apache.paimon.utils.EncodingUtils.escapeIdentifier;
 import static org.apache.paimon.utils.EncodingUtils.escapeSingleQuotes;
 
 /**
- * Defines the field of a row type.
+ * 定义 RowType 中的一个字段，包括字段名、字段类型、字段描述.
+ *
+ * <p>Defines the field of a row type.
  *
  * @since 0.4.0
  */

@@ -21,7 +21,9 @@ package org.apache.paimon.data;
 import org.apache.paimon.annotation.Public;
 
 /**
- * Getters to get data.
+ * 从指定下标获取各种类型数据的基类接口.
+ *
+ * <p>Getters to get data.
  *
  * @since 0.4.0
  */
