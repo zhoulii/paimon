@@ -24,7 +24,11 @@ import org.apache.paimon.data.BinaryRow;
 
 import java.io.IOException;
 
-/** A type serializer which provides paged serialize and deserialize methods. */
+/**
+ * 分页的 serializer.
+ *
+ * <p>A type serializer which provides paged serialize and deserialize methods.
+ */
 public interface PagedTypeSerializer<T> extends Serializer<T> {
 
     /**
@@ -59,7 +63,9 @@ public interface PagedTypeSerializer<T> extends Serializer<T> {
     T deserializeFromPages(T reuse, AbstractPagedInputView source) throws IOException;
 
     /**
-     * Map a reused record from the given source paged input view. This method provides a
+     * 零拷贝的方式将一个 reuse 对象和 AbstractPagedInputView 建立映射.
+     *
+     * <p>Map a reused record from the given source paged input view. This method provides a
      * possibility to achieve zero copy when de-serializing. You can either choose copy or not copy
      * the content read from source, but we encourage to make it zero copy.
      *
@@ -75,6 +81,10 @@ public interface PagedTypeSerializer<T> extends Serializer<T> {
      */
     T mapFromPages(T reuse, AbstractPagedInputView source) throws IOException;
 
-    /** Skip over bytes of one record from the paged input view, discarding the skipped bytes. */
+    /**
+     * 跳过一些不需要序列化的字节
+     *
+     * <p>Skip over bytes of one record from the paged input view, discarding the skipped bytes.
+     */
     void skipRecordFromPages(AbstractPagedInputView source) throws IOException;
 }

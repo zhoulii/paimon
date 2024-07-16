@@ -35,13 +35,15 @@ import static org.apache.paimon.utils.Preconditions.checkArgument;
 public class BinaryRowSerializer extends AbstractRowDataSerializer<BinaryRow> {
 
     private static final long serialVersionUID = 1L;
-    public static final int LENGTH_SIZE_IN_BYTES = 4;
+    public static final int LENGTH_SIZE_IN_BYTES = 4; // 用 4 个字节存储BinaryRow 的字节长度
 
     private final int numFields;
     private final int fixedLengthPartSize;
 
     public BinaryRowSerializer(int numFields) {
         this.numFields = numFields;
+
+        // BinaryRow 固定长度部分
         this.fixedLengthPartSize = BinaryRow.calculateFixPartSizeInBytes(numFields);
     }
 
@@ -119,6 +121,7 @@ public class BinaryRowSerializer extends AbstractRowDataSerializer<BinaryRow> {
     private static void serializeWithoutLength(BinaryRow record, MemorySegmentWritable writable)
             throws IOException {
         if (record.getSegments().length == 1) {
+            // 直接写出 MemorySegment.
             writable.write(record.getSegments()[0], record.getOffset(), record.getSizeInBytes());
         } else {
             serializeWithoutLengthSlow(record, writable);
@@ -130,6 +133,7 @@ public class BinaryRowSerializer extends AbstractRowDataSerializer<BinaryRow> {
         int remainSize = record.getSizeInBytes();
         int posInSegOfRecord = record.getOffset();
         int segmentSize = record.getSegments()[0].size();
+        // 每次写出一个 MemorySegment.
         for (MemorySegment segOfRecord : record.getSegments()) {
             int nWrite = Math.min(segmentSize - posInSegOfRecord, remainSize);
             assert nWrite > 0;
@@ -187,7 +191,9 @@ public class BinaryRowSerializer extends AbstractRowDataSerializer<BinaryRow> {
     }
 
     /**
-     * Point row to memory segments with offset(in the AbstractPagedInputView) and length.
+     * 将 Reuse BinaryRow 指向一段内存区间.
+     *
+     * <p>Point row to memory segments with offset(in the AbstractPagedInputView) and length.
      *
      * @param length row length.
      * @param reuse reuse BinaryRow object.
@@ -209,10 +215,12 @@ public class BinaryRowSerializer extends AbstractRowDataSerializer<BinaryRow> {
         MemorySegment currSeg = headerLessView.getCurrentSegment();
         int currPosInSeg = headerLessView.getCurrentPositionInSegment();
         if (remainInSegment >= length) {
+            // 在一个 MemorySegment 中.
             // all in one segment, that's good.
             reuse.pointTo(currSeg, currPosInSeg, length);
             headerLessView.skipBytesToRead(length);
         } else {
+            // 跨多个 MemorySegment.
             pointToMultiSegments(
                     reuse, headerLessView, length, length - remainInSegment, currSeg, currPosInSeg);
         }
@@ -239,6 +247,7 @@ public class BinaryRowSerializer extends AbstractRowDataSerializer<BinaryRow> {
             segments[i] = source.getCurrentSegment();
         }
 
+        // 最后一个 MemorySegment 全是需要的数据，跳过 segmentSize 个 bytes，否则跳过 remainder 个 bytes.
         // The remaining is 0. There is no next Segment at this time. The current Segment is
         // all the data of this row, so we need to skip segmentSize bytes to read. We can't
         // jump directly to the next Segment. Because maybe there are no segment in later.
@@ -248,8 +257,10 @@ public class BinaryRowSerializer extends AbstractRowDataSerializer<BinaryRow> {
     }
 
     /**
-     * We need skip bytes to write when the remain bytes of current segment is not enough to write
-     * binary row fixed part. See {@link BinaryRow}.
+     * BinaryRow 的固定部分要写到同个 Page 里，当前 Segment 的剩余空间要大于 BinaryRow 的固定部分，否则申请一个新的 Segment.
+     *
+     * <p>We need skip bytes to write when the remain bytes of current segment is not enough to
+     * write binary row fixed part. See {@link BinaryRow}.
      */
     private int checkSkipWriteForFixLengthPart(AbstractPagedOutputView out) throws IOException {
         // skip if there is no enough size.
@@ -262,7 +273,9 @@ public class BinaryRowSerializer extends AbstractRowDataSerializer<BinaryRow> {
     }
 
     /**
-     * We need skip bytes to read when the remain bytes of current segment is not enough to write
+     * 剩余的空间不足以存储 BinaryRow 的固定部分，跳过该部分空间.
+     *
+     * <p>We need skip bytes to read when the remain bytes of current segment is not enough to write
      * binary row fixed part. See {@link BinaryRow}.
      */
     public void checkSkipReadForFixLengthPart(AbstractPagedInputView source) throws IOException {

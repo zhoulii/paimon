@@ -24,8 +24,10 @@ import java.io.DataInput;
 import java.io.IOException;
 
 /**
- * This interface defines a view over some memory that can be used to sequentially read the contents
- * of the memory. The view is typically backed by one or more {@link MemorySegment}.
+ * DataInput：从内存中读取字节数数组为 Java 对象. DataInputView：从 MemorySegment 读取数据.
+ *
+ * <p>This interface defines a view over some memory that can be used to sequentially read the
+ * contents of the memory. The view is typically backed by one or more {@link MemorySegment}.
  */
 public interface DataInputView extends DataInput {
 
@@ -41,7 +43,9 @@ public interface DataInputView extends DataInput {
     void skipBytesToRead(int numBytes) throws IOException;
 
     /**
-     * Reads up to {@code len} bytes of memory and stores it into {@code b} starting at offset
+     * 将数据读到 b 中.
+     *
+     * <p>Reads up to {@code len} bytes of memory and stores it into {@code b} starting at offset
      * {@code off}. It returns the number of read bytes or -1 if there is no more data left.
      *
      * @param b byte array to store the data to
@@ -53,8 +57,10 @@ public interface DataInputView extends DataInput {
     int read(byte[] b, int off, int len) throws IOException;
 
     /**
-     * Tries to fill the given byte array {@code b}. Returns the actually number of read bytes or -1
-     * if there is no more data.
+     * 将数据读到 b 中.
+     *
+     * <p>Tries to fill the given byte array {@code b}. Returns the actually number of read bytes or
+     * -1 if there is no more data.
      *
      * @param b byte array to store the data to
      * @return the number of read bytes or -1 if there is no more data left

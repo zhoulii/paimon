@@ -161,7 +161,9 @@ public interface InternalRow extends DataGetters {
     }
 
     /**
-     * Creates an accessor for getting elements in an internal row data structure at the given
+     * 创建 FieldGetter 对象，表示如何获取某个 field 的值.
+     *
+     * <p>Creates an accessor for getting elements in an internal row data structure at the given
      * position.
      *
      * @param fieldType the element type of the row

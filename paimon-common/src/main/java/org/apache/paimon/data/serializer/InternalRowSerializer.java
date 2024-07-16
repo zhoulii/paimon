@@ -52,10 +52,10 @@ public class InternalRowSerializer extends AbstractRowDataSerializer<InternalRow
 
     public InternalRowSerializer(RowType rowType) {
         this(
-                rowType.getFieldTypes().toArray(new DataType[0]),
+                rowType.getFieldTypes().toArray(new DataType[0]), // 获取字段 DataType
                 rowType.getFieldTypes().stream()
                         .map(InternalSerializers::create)
-                        .toArray(Serializer[]::new));
+                        .toArray(Serializer[]::new)); // 创建每个字段的序列化器
     }
 
     public InternalRowSerializer(DataType... types) {
@@ -74,6 +74,7 @@ public class InternalRowSerializer extends AbstractRowDataSerializer<InternalRow
             DataType type = types[i];
             fieldGetters[i] = InternalRow.createFieldGetter(type, i);
             // pass serializer to avoid infinite loop
+            // 表示如何将 value 以 binary 方式写出
             valueSetters[i] = BinaryWriter.createValueSetter(type, fieldSerializers[i]);
         }
     }
@@ -126,6 +127,7 @@ public class InternalRowSerializer extends AbstractRowDataSerializer<InternalRow
         ret.setRowKind(from.getRowKind());
         for (int i = 0; i < from.getFieldCount(); i++) {
             if (!from.isNullAt(i)) {
+                // 深拷贝
                 ret.setField(i, fieldSerializers[i].copy((fieldGetters[i].getFieldOrNull(from))));
             } else {
                 ret.setField(i, null);
@@ -143,7 +145,11 @@ public class InternalRowSerializer extends AbstractRowDataSerializer<InternalRow
         return types;
     }
 
-    /** Convert {@link InternalRow} into {@link BinaryRow}. TODO modify it to code gen. */
+    /**
+     * InternalRow 转换为 BinaryRow.
+     *
+     * <p>Convert {@link InternalRow} into {@link BinaryRow}. TODO modify it to code gen.
+     */
     @Override
     public BinaryRow toBinaryRow(InternalRow row) {
         if (row instanceof BinaryRow) {

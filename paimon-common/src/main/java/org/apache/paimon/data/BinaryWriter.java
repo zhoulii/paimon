@@ -213,7 +213,11 @@ public interface BinaryWriter {
         }
     }
 
-    /** Accessor for setting the elements of a binary writer during runtime. */
+    /**
+     * 设置 BinaryWriter 中某个字段的值.
+     *
+     * <p>Accessor for setting the elements of a binary writer during runtime.
+     */
     interface ValueSetter extends Serializable {
         void setValue(BinaryWriter writer, int pos, Object value);
     }

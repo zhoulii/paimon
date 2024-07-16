@@ -29,7 +29,11 @@ import static org.apache.paimon.types.DataTypeChecks.getFieldTypes;
 import static org.apache.paimon.types.DataTypeChecks.getPrecision;
 import static org.apache.paimon.types.DataTypeChecks.getScale;
 
-/** {@link Serializer} of {@link DataType} for internal data structures. */
+/**
+ * 工具类，创建具体 DataType 类型的序列化器.
+ *
+ * <p>{@link Serializer} of {@link DataType} for internal data structures.
+ */
 public final class InternalSerializers {
 
     /** Creates a {@link Serializer} for internal data structures of the given {@link DataType}. */

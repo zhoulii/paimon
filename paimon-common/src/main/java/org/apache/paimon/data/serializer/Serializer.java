@@ -24,7 +24,11 @@ import org.apache.paimon.io.DataOutputView;
 import java.io.IOException;
 import java.io.Serializable;
 
-/** Serializer to serialize internal data structure. */
+/**
+ * paimon 中序列化器基类.
+ *
+ * <p>Serializer to serialize internal data structure.
+ */
 public interface Serializer<T> extends Serializable {
 
     /**

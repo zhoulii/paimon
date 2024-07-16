@@ -23,7 +23,11 @@ import org.apache.paimon.data.InternalRow;
 
 import java.io.IOException;
 
-/** Row serializer, provided paged serialize paged method. */
+/**
+ * 分页的 row serializer.
+ *
+ * <p>Row serializer, provided paged serialize paged method.
+ */
 public abstract class AbstractRowDataSerializer<T extends InternalRow>
         implements PagedTypeSerializer<T> {
 
@@ -32,6 +36,10 @@ public abstract class AbstractRowDataSerializer<T extends InternalRow>
     /** Get the number of fields. */
     public abstract int getArity();
 
-    /** Convert a {@link InternalRow} to a {@link BinaryRow}. */
+    /**
+     * 将 InternalRow 转换为 BinaryRow.
+     *
+     * <p>Convert a {@link InternalRow} to a {@link BinaryRow}.
+     */
     public abstract BinaryRow toBinaryRow(T rowData) throws IOException;
 }

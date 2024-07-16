@@ -24,14 +24,20 @@ import java.io.DataOutput;
 import java.io.IOException;
 
 /**
- * This interface defines a view over some memory that can be used to sequentially write contents to
- * the memory. The view is typically backed by one or more {@link MemorySegment}.
+ * DataOutput: 向输出流写出各种类型的对象. DataOutputView: DataOutput 的增强，能输出 DataInputView 到输出流，这里用于输出到
+ * MemorySegment.
+ *
+ * <p>This interface defines a view over some memory that can be used to sequentially write contents
+ * to the memory. The view is typically backed by one or more {@link MemorySegment}.
  */
 public interface DataOutputView extends DataOutput {
 
     /**
-     * Skips {@code numBytes} bytes memory. If some program reads the memory that was skipped over,
-     * the results are undefined.
+     * DataOutputView 也可以理解为一块输出内存视图，后端可以由 MemorySegment 支撑，skipBytesToWrite 表示向 MemorySegment 写入时，
+     * 跳过一段范围的内存。
+     *
+     * <p>Skips {@code numBytes} bytes memory. If some program reads the memory that was skipped
+     * over, the results are undefined.
      *
      * @param numBytes The number of bytes to skip.
      * @throws IOException Thrown, if any I/O related problem occurred such that the view could not
@@ -40,7 +46,9 @@ public interface DataOutputView extends DataOutput {
     void skipBytesToWrite(int numBytes) throws IOException;
 
     /**
-     * Copies {@code numBytes} bytes from the source to this view.
+     * 写出输入内存视图中的部分内容.
+     *
+     * <p>Copies {@code numBytes} bytes from the source to this view.
      *
      * @param source The source to copy the bytes from.
      * @param numBytes The number of bytes to copy.

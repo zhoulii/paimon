@@ -26,7 +26,9 @@ import java.io.IOException;
 import java.io.UTFDataFormatException;
 
 /**
- * The base class for all input views that are backed by multiple memory pages. This base class
+ * 读取分页内存.
+ *
+ * <p>The base class for all input views that are backed by multiple memory pages. This base class
  * contains all decoding methods to read data from a page and detect page boundary crossing. The
  * concrete sub classes must implement the methods to provide the next memory page once the boundary
  * is crossed.
