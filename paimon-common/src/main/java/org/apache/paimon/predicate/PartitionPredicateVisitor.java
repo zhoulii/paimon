@@ -20,7 +20,11 @@ package org.apache.paimon.predicate;
 
 import java.util.List;
 
-/** Visit the predicate and check if it only contains partition key's predicate. */
+/**
+ * 判断某个 predicate 是否只包含分区字段的谓词.
+ *
+ * <p>Visit the predicate and check if it only contains partition key's predicate.
+ */
 public class PartitionPredicateVisitor implements PredicateVisitor<Boolean> {
 
     private final List<String> partitionKeys;

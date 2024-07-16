@@ -38,6 +38,7 @@ public class Or extends CompoundPredicate.Function {
     public boolean test(InternalRow row, List<Predicate> children) {
         for (Predicate child : children) {
             if (child.test(row)) {
+                // 任意一个匹配则返回true
                 return true;
             }
         }
@@ -53,6 +54,7 @@ public class Or extends CompoundPredicate.Function {
             List<Predicate> children) {
         for (Predicate child : children) {
             if (child.test(rowCount, minValues, maxValues, nullCounts)) {
+                // 任意一个匹配则返回true
                 return true;
             }
         }
@@ -61,6 +63,7 @@ public class Or extends CompoundPredicate.Function {
 
     @Override
     public Optional<Predicate> negate(List<Predicate> children) {
+        // 对每一个条件取反，如果某个子条件没反，则整体没反
         List<Predicate> negatedChildren = new ArrayList<>();
         for (Predicate child : children) {
             Optional<Predicate> negatedChild = child.negate();
@@ -70,6 +73,8 @@ public class Or extends CompoundPredicate.Function {
                 return Optional.empty();
             }
         }
+        // 组合为 AND 条件
+        // 比如 ： x == a or x == b，相反表示则为 x != a and x != b
         return Optional.of(new CompoundPredicate(And.INSTANCE, negatedChildren));
     }
 

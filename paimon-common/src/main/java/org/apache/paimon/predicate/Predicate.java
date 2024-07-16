@@ -26,7 +26,9 @@ import java.io.Serializable;
 import java.util.Optional;
 
 /**
- * Predicate which returns Boolean and provides testing by stats.
+ * 条件判断接口，判断 row 是否满足某些条件.
+ *
+ * <p>Predicate which returns Boolean and provides testing by stats.
  *
  * @see PredicateBuilder
  * @since 0.4.0
@@ -42,7 +44,9 @@ public interface Predicate extends Serializable {
     boolean test(InternalRow row);
 
     /**
-     * Test based on the statistical information to determine whether a hit is possible.
+     * true 表示匹配上，存在假阳性. false 表示匹配不上，不存在假阴性.
+     *
+     * <p>Test based on the statistical information to determine whether a hit is possible.
      *
      * @return return true is likely to hit (there may also be false positives), return false is
      *     absolutely not possible to hit.
@@ -50,7 +54,11 @@ public interface Predicate extends Serializable {
     boolean test(
             long rowCount, InternalRow minValues, InternalRow maxValues, InternalArray nullCounts);
 
-    /** @return the negation predicate of this predicate if possible. */
+    /**
+     * 获取含义相反的 Predicate.
+     *
+     * @return the negation predicate of this predicate if possible.
+     */
     Optional<Predicate> negate();
 
     <T> T visit(PredicateVisitor<T> visitor);

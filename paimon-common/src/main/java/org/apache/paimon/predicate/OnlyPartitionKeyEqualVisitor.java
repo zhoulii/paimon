@@ -79,6 +79,8 @@ public class OnlyPartitionKeyEqualVisitor implements FunctionVisitor<Boolean> {
 
     @Override
     public Boolean visitEqual(FieldRef fieldRef, Object literal) {
+        // Field 是个 partition 字段，并且对 Field 做的判断是等于判断
+        // 则认为该 partition 可以被 push down
         boolean contains = partitionKeys.contains(fieldRef.name());
         if (contains) {
             partitions.put(fieldRef.name(), literal.toString());
@@ -104,6 +106,7 @@ public class OnlyPartitionKeyEqualVisitor implements FunctionVisitor<Boolean> {
 
     @Override
     public Boolean visitAnd(List<Boolean> children) {
+        // 所有子节点都为 true，即所有子节点都是对于 partition 字段的相等判断
         return children.stream().reduce((first, second) -> first && second).get();
     }
 

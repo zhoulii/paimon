@@ -21,7 +21,14 @@ package org.apache.paimon.predicate;
 import java.util.List;
 import java.util.stream.Collectors;
 
-/** A {@link PredicateVisitor} to visit functions. */
+/**
+ * 访问不同 Function 的行为.
+ *
+ * <p>PredicateVisitor 用于判断包含哪些谓词(PartitionPredicateVisitor)，FunctionVisitor
+ * 则更近一步，能判断是怎样匹配的(OnlyPartitionKeyEqualVisitor)，比如 Equal 时要做哪些处理...
+ *
+ * <p>A {@link PredicateVisitor} to visit functions.
+ */
 public interface FunctionVisitor<T> extends PredicateVisitor<T> {
 
     @Override

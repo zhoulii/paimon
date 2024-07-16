@@ -26,6 +26,7 @@ import static java.lang.Math.min;
 public class CompareUtils {
     private CompareUtils() {}
 
+    // 比较 Comparable 类型或者 byte 数组类型.
     public static int compareLiteral(DataType type, Object v1, Object v2) {
         if (v1 instanceof Comparable) {
             return ((Comparable<Object>) v1).compareTo(v2);

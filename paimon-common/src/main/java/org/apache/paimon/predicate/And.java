@@ -36,6 +36,7 @@ public class And extends CompoundPredicate.Function {
 
     @Override
     public boolean test(InternalRow row, List<Predicate> children) {
+        // 所有条件都得匹配才算匹配
         for (Predicate child : children) {
             if (!child.test(row)) {
                 return false;
@@ -52,6 +53,7 @@ public class And extends CompoundPredicate.Function {
             InternalArray nullCounts,
             List<Predicate> children) {
         for (Predicate child : children) {
+            // 所有条件都得匹配才算匹配
             if (!child.test(rowCount, minValues, maxValues, nullCounts)) {
                 return false;
             }
@@ -61,6 +63,7 @@ public class And extends CompoundPredicate.Function {
 
     @Override
     public Optional<Predicate> negate(List<Predicate> children) {
+        // 对每一个条件取反，如果某个子条件没反，则整体没反
         List<Predicate> negatedChildren = new ArrayList<>();
         for (Predicate child : children) {
             Optional<Predicate> negatedChild = child.negate();
@@ -70,6 +73,7 @@ public class And extends CompoundPredicate.Function {
                 return Optional.empty();
             }
         }
+        // 最终取所有条件的 OR 条件
         return Optional.of(new CompoundPredicate(Or.INSTANCE, negatedChildren));
     }
 

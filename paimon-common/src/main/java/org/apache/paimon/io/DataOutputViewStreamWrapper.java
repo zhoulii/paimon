@@ -22,7 +22,13 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 
-/** Utility class that turns an {@link OutputStream} into a {@link DataOutputView}. */
+/**
+ * 将 OutputStream 包装为 DataOutputView.
+ *
+ * <p>DataOutputView 能够读取 DataInputView 内容，输出到输出流，一般是输出到 MemorySegment，这里是输出到 OutputStream.
+ *
+ * <p>Utility class that turns an {@link OutputStream} into a {@link DataOutputView}.
+ */
 public class DataOutputViewStreamWrapper extends DataOutputStream implements DataOutputView {
 
     private byte[] tempBuffer;
@@ -37,6 +43,7 @@ public class DataOutputViewStreamWrapper extends DataOutputStream implements Dat
             tempBuffer = new byte[4096];
         }
 
+        // 随机写出 numBytes 内容.
         while (numBytes > 0) {
             int toWrite = Math.min(numBytes, tempBuffer.length);
             write(tempBuffer, 0, toWrite);

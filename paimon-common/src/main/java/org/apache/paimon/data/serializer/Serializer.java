@@ -32,8 +32,10 @@ import java.io.Serializable;
 public interface Serializer<T> extends Serializable {
 
     /**
-     * Creates a deep copy of this serializer if it is necessary, i.e. if it is stateful. This can
-     * return itself if the serializer is not stateful.
+     * 无状态直接返回自身，有状态做深拷贝.
+     *
+     * <p>Creates a deep copy of this serializer if it is necessary, i.e. if it is stateful. This
+     * can return itself if the serializer is not stateful.
      *
      * <p>We need this because Serializers might be used in several threads. Stateless serializers
      * are inherently thread-safe while stateful serializers might not be thread-safe.

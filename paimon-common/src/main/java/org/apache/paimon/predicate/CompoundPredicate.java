@@ -27,7 +27,9 @@ import java.util.Objects;
 import java.util.Optional;
 
 /**
- * Non-leaf node in a {@link Predicate} tree. Its evaluation result depends on the results of its
+ * 符合判断条件，是多个 {@link Predicate} 的组合。
+ *
+ * <p>Non-leaf node in a {@link Predicate} tree. Its evaluation result depends on the results of its
  * children.
  */
 public class CompoundPredicate implements Predicate {
@@ -50,17 +52,20 @@ public class CompoundPredicate implements Predicate {
 
     @Override
     public boolean test(InternalRow row) {
+        // 是否满足 function 组合条件
         return function.test(row, children);
     }
 
     @Override
     public boolean test(
             long rowCount, InternalRow minValues, InternalRow maxValues, InternalArray nullCounts) {
+        // 是否满足 function 组合条件
         return function.test(rowCount, minValues, maxValues, nullCounts, children);
     }
 
     @Override
     public Optional<Predicate> negate() {
+        // 获取一个相反的 Predicate.
         return function.negate(children);
     }
 
@@ -88,11 +93,17 @@ public class CompoundPredicate implements Predicate {
         return function + "(" + children + ")";
     }
 
-    /** Evaluate the predicate result based on multiple {@link Predicate}s. */
+    /**
+     * Predicate 的组合条件，如 OR|AND.
+     *
+     * <p>Evaluate the predicate result based on multiple {@link Predicate}s.
+     */
     public abstract static class Function implements Serializable {
 
+        // 组合判断 row 是否满足 children
         public abstract boolean test(InternalRow row, List<Predicate> children);
 
+        // 组合判断 stats 是否满足 children
         public abstract boolean test(
                 long rowCount,
                 InternalRow minValues,
@@ -100,8 +111,10 @@ public class CompoundPredicate implements Predicate {
                 InternalArray nullCounts,
                 List<Predicate> children);
 
+        // 获取相反的 Predicate
         public abstract Optional<Predicate> negate(List<Predicate> children);
 
+        // 访问者模式，visitor 用于访问 Function 本身.
         public abstract <T> T visit(FunctionVisitor<T> visitor, List<T> children);
 
         @Override

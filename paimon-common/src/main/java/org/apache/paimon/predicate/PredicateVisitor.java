@@ -18,7 +18,11 @@
 
 package org.apache.paimon.predicate;
 
-/** A visitor to visit {@link Predicate}. */
+/**
+ * 访问者模式，控制访问不同 Predicate 的行为，也可以说是校验 Predicate 是否匹配某些模式.
+ *
+ * <p>A visitor to visit {@link Predicate}.
+ */
 public interface PredicateVisitor<T> {
 
     T visit(LeafPredicate predicate);

@@ -29,7 +29,11 @@ import java.io.IOException;
 
 import static org.apache.paimon.utils.Preconditions.checkArgument;
 
-/** Serializer wrapper to add support of {@code null} value serialization. */
+/**
+ * 一个 serializer wrapper，能够处理 null 值.
+ *
+ * <p>Serializer wrapper to add support of {@code null} value serialization.
+ */
 public class NullableSerializer<T> implements Serializer<T> {
 
     private static final long serialVersionUID = 1L;
@@ -41,7 +45,9 @@ public class NullableSerializer<T> implements Serializer<T> {
     }
 
     /**
-     * This method tries to serialize {@code null} value with the {@code originalSerializer} and
+     * 如果 originalSerializer 支持序列化 null，则直接返回，否则包装成 NullableSerializer 返回.
+     *
+     * <p>This method tries to serialize {@code null} value with the {@code originalSerializer} and
      * wraps it in case of {@link NullPointerException}, otherwise it returns the {@code
      * originalSerializer}.
      *

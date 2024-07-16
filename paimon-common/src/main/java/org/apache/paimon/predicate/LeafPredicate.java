@@ -36,7 +36,11 @@ import java.util.Optional;
 
 import static org.apache.paimon.utils.InternalRowUtils.get;
 
-/** Leaf node of a {@link Predicate} tree. Compares a field in the row with literals. */
+/**
+ * 最底层的判断条件.
+ *
+ * <p>Leaf node of a {@link Predicate} tree. Compares a field in the row with literals.
+ */
 public class LeafPredicate implements Predicate {
 
     private static final long serialVersionUID = 1L;
@@ -86,11 +90,13 @@ public class LeafPredicate implements Predicate {
     }
 
     public LeafPredicate copyWithNewIndex(int fieldIndex) {
+        // 复制出一个 LeafPredicate，用于判断不同索引的字段.
         return new LeafPredicate(function, type, fieldIndex, fieldName, literals);
     }
 
     @Override
     public boolean test(InternalRow row) {
+        // 最终的判断行为由 LeafFunction 来实现.
         return function.test(type, get(row, fieldIndex, type), literals);
     }
 
@@ -101,6 +107,8 @@ public class LeafPredicate implements Predicate {
         Object max = get(maxValues, fieldIndex, type);
         Long nullCount = nullCounts.isNullAt(fieldIndex) ? null : nullCounts.getLong(fieldIndex);
         if (nullCount == null || rowCount != nullCount) {
+            // 字段值不全为空，如果最小值或最大值为空，则返回 true，表示统计信息不完整或未知情况下不进行优化
+            // 无法进行有效过滤
             // not all null
             // min or max is null
             // unknown stats
@@ -113,6 +121,7 @@ public class LeafPredicate implements Predicate {
 
     @Override
     public Optional<Predicate> negate() {
+        // 获取一个意义相反的 Predicate，实际上就是获取一个意义相反的 LeafFunction.
         return function.negate()
                 .map(negate -> new LeafPredicate(negate, type, fieldIndex, fieldName, literals));
     }
@@ -159,16 +168,19 @@ public class LeafPredicate implements Predicate {
     }
 
     private ListSerializer<Object> objectsSerializer() {
+        // 对 type 的 serializer 进行包装，使其能够处理空值.
         return new ListSerializer<>(
                 NullableSerializer.wrapIfNullIsNotSupported(InternalSerializers.create(type)));
     }
 
     private void writeObject(ObjectOutputStream out) throws IOException {
+        // java 自身序列化框架会调用
         out.defaultWriteObject();
         objectsSerializer().serialize(literals, new DataOutputViewStreamWrapper(out));
     }
 
     private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
+        // java 自身反序列化框架会调用
         in.defaultReadObject();
         literals = objectsSerializer().deserialize(new DataInputViewStreamWrapper(in));
     }

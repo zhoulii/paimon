@@ -39,6 +39,7 @@ public class In extends LeafFunction {
         if (field == null) {
             return false;
         }
+        // 有一个匹配的符合
         for (Object literal : literals) {
             if (literal != null && compareLiteral(type, literal, field) == 0) {
                 return true;
@@ -59,6 +60,7 @@ public class In extends LeafFunction {
             return false;
         }
         for (Object literal : literals) {
+            // 有一个匹配则符合
             if (literal != null
                     && compareLiteral(type, literal, min) >= 0
                     && compareLiteral(type, literal, max) <= 0) {
@@ -70,6 +72,7 @@ public class In extends LeafFunction {
 
     @Override
     public Optional<LeafFunction> negate() {
+        // 相反的 LeafFunction 为 NotIn
         return Optional.of(NotIn.INSTANCE);
     }
 

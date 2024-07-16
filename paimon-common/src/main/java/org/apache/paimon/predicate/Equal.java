@@ -34,22 +34,26 @@ public class Equal extends NullFalseLeafBinaryFunction {
 
     @Override
     public boolean test(DataType type, Object field, Object literal) {
+        // 直接比较字段值
         return compareLiteral(type, literal, field) == 0;
     }
 
     @Override
     public boolean test(
             DataType type, long rowCount, Object min, Object max, Long nullCount, Object literal) {
+        // literal 处于 min~max 之间则满足条件
         return compareLiteral(type, literal, min) >= 0 && compareLiteral(type, literal, max) <= 0;
     }
 
     @Override
     public Optional<LeafFunction> negate() {
+        // 相反的 LeafFunction 为 NotEqual
         return Optional.of(NotEqual.INSTANCE);
     }
 
     @Override
     public <T> T visit(FunctionVisitor<T> visitor, FieldRef fieldRef, List<Object> literals) {
+        // 访问 Equal function 的行为.
         return visitor.visitEqual(fieldRef, literals.get(0));
     }
 }
