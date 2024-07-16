@@ -114,6 +114,7 @@ public class CatalogOptionsTable implements ReadonlyTable {
     }
 
     private static class CatalogOptionsSplit extends SingletonSplit {
+        // 表示用于读取 options 的 split.
 
         private static final long serialVersionUID = 1L;
 

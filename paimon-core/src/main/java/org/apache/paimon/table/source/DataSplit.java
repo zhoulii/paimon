@@ -42,20 +42,31 @@ import java.util.stream.Collectors;
 import static org.apache.paimon.io.DataFilePathFactory.INDEX_PATH_SUFFIX;
 import static org.apache.paimon.utils.Preconditions.checkArgument;
 
-/** Input splits. Needed by most batch computation engines. */
+/**
+ * 大部分批处理引擎读取的都是 DataSplit.
+ *
+ * <p>Input splits. Needed by most batch computation engines.
+ */
 public class DataSplit implements Split {
 
     private static final long serialVersionUID = 7L;
 
+    // snapshot id
     private long snapshotId = 0;
+    // 属于哪个 partition
     private BinaryRow partition;
+    // 属于哪个 bucket
     private int bucket = -1;
+    // bucket path
     private String bucketPath;
 
+    // TODO overwrite 被覆盖的文件
     private List<DataFileMeta> beforeFiles = new ArrayList<>();
+    // TODO deletion vector 文件
     @Nullable private List<DeletionFile> beforeDeletionFiles;
 
     private List<DataFileMeta> dataFiles;
+    // TODO deletion vector 文件
     @Nullable private List<DeletionFile> dataDeletionFiles;
 
     private boolean isStreaming = false;
@@ -110,6 +121,7 @@ public class DataSplit implements Split {
 
     @Override
     public long rowCount() {
+        // 新增文件行数
         long rowCount = 0;
         for (DataFileMeta file : dataFiles) {
             rowCount += file.rowCount();
@@ -119,6 +131,7 @@ public class DataSplit implements Split {
 
     @Override
     public Optional<List<RawFile>> convertToRawFiles() {
+        // 将 dataFiles 转换为 List<RawFile>
         if (rawConvertible) {
             return Optional.of(
                     dataFiles.stream()
@@ -145,6 +158,7 @@ public class DataSplit implements Split {
         List<IndexFile> indexFiles = new ArrayList<>();
         boolean hasIndexFile = false;
         for (DataFileMeta file : dataFiles) {
+            // index file 路径存储在 DataFileMeta 的 extraFiles 中
             List<String> exFiles =
                     file.extraFiles().stream()
                             .filter(s -> s.endsWith(INDEX_PATH_SUFFIX))

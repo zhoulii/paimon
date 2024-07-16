@@ -131,7 +131,11 @@ public class SchemasTable implements ReadonlyTable {
         }
     }
 
-    /** {@link Split} implementation for {@link SchemasTable}. */
+    /**
+     * 表示用于读取 Schema 的 Split.
+     *
+     * <p>{@link Split} implementation for {@link SchemasTable}.
+     */
     private static class SchemasSplit extends SingletonSplit {
 
         private static final long serialVersionUID = 1L;

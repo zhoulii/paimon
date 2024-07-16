@@ -25,7 +25,9 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * An input split for reading.
+ * 表示一个输入分片，可包含多个文件.
+ *
+ * <p>An input split for reading.
  *
  * @since 0.4.0
  */
@@ -35,8 +37,10 @@ public interface Split extends Serializable {
     long rowCount();
 
     /**
-     * If all files in this split can be read without merging, returns an {@link Optional} wrapping
-     * a list of {@link RawFile}s to be read without merging. Otherwise, returns {@link
+     * 如果所有文件都不需要合并读取，则可以直接返回 RawFile 列表.
+     *
+     * <p>If all files in this split can be read without merging, returns an {@link Optional}
+     * wrapping a list of {@link RawFile}s to be read without merging. Otherwise, returns {@link
      * Optional#empty()}.
      */
     default Optional<List<RawFile>> convertToRawFiles() {
@@ -44,7 +48,10 @@ public interface Split extends Serializable {
     }
 
     /**
-     * Return the deletion file of the data file, indicating which row in the data file was deleted.
+     * 删除的文件.
+     *
+     * <p>Return the deletion file of the data file, indicating which row in the data file was
+     * deleted.
      *
      * <p>If there is no corresponding deletion file, the element will be null.
      */
@@ -53,7 +60,9 @@ public interface Split extends Serializable {
     }
 
     /**
-     * * Return the index file of the data file, for example, bloom-filter index. All the type of
+     * 索引文件.
+     *
+     * <p>* Return the index file of the data file, for example, bloom-filter index. All the type of
      * indexes and columns will be stored in one single index file.
      *
      * <p>If there is no corresponding index file, the element will be null.

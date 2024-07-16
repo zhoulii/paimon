@@ -30,7 +30,9 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * Used as a placeholder for an empty snapshot, indicating that the current snapshot does not
+ * 当前 snapshot 不包含任何 split，使用 PlaceholderSplit 来进行占位.
+ *
+ * <p>Used as a placeholder for an empty snapshot, indicating that the current snapshot does not
  * contain any {@link org.apache.paimon.table.source.Split}.
  */
 public class PlaceholderSplit extends DataSplit {

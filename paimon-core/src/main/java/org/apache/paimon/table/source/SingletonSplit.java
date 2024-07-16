@@ -18,7 +18,11 @@
 
 package org.apache.paimon.table.source;
 
-/** Singleton split use for system table, in which, scan always just produce one split. */
+/**
+ * 只存在一个 Split，给系统表使用.
+ *
+ * <p>Singleton split use for system table, in which, scan always just produce one split.
+ */
 public abstract class SingletonSplit implements Split {
 
     @Override

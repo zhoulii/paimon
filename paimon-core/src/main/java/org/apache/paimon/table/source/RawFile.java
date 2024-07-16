@@ -27,7 +27,9 @@ import java.io.IOException;
 import java.util.Objects;
 
 /**
- * A data file from the table which can be read directly without merging.
+ * 能够直接读取的文件.
+ *
+ * <p>A data file from the table which can be read directly without merging.
  *
  * @since 0.6.0
  */

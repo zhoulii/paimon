@@ -132,7 +132,7 @@ public class TagsTable implements ReadonlyTable {
     }
 
     private static class TagsSplit extends SingletonSplit {
-
+        // 表示用于读取 Tag 的 split.
         private static final long serialVersionUID = 1L;
 
         private final Path location;

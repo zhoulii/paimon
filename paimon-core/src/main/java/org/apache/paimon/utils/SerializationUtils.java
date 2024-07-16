@@ -89,7 +89,9 @@ public class SerializationUtils {
     }
 
     /**
-     * Serialize {@link BinaryRow} to a {@link DataOutputView}.
+     * BinaryRow 序列化到 DataOutputView.
+     *
+     * <p>Serialize {@link BinaryRow} to a {@link DataOutputView}.
      *
      * @see #serializeBinaryRow(BinaryRow)
      */
