@@ -23,7 +23,9 @@ import org.apache.paimon.annotation.Public;
 import javax.annotation.Nullable;
 
 /**
- * Interface describing entities that can provide memory segments.
+ * 提供 MemorySegment 的实体接口.
+ *
+ * <p>Interface describing entities that can provide memory segments.
  *
  * @since 0.4.0
  */

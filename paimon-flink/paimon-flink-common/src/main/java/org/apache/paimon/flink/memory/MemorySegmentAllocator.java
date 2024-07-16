@@ -30,11 +30,17 @@ import java.util.List;
 import static org.apache.paimon.utils.Preconditions.checkArgument;
 import static org.apache.paimon.utils.Preconditions.checkNotNull;
 
-/** Allocate memory segment from memory manager in flink for paimon. */
+/**
+ * 从 flink managed memory 中分配内存.
+ *
+ * <p>Allocate memory segment from memory manager in flink for paimon.
+ */
 public class MemorySegmentAllocator {
     private final Object owner;
     private final MemoryManager memoryManager;
+    // 用来保存分配的内存
     private final List<org.apache.flink.core.memory.MemorySegment> allocatedSegments;
+    // 用来申请内存的临时存储
     private final List<org.apache.flink.core.memory.MemorySegment> segments;
     private final Field offHeapBufferField;
 
@@ -55,6 +61,7 @@ public class MemorySegmentAllocator {
 
     /** Allocates a set of memory segments for memory pool. */
     public MemorySegment allocate() {
+        // 申请一块 flink MemorySegment 并包装为 Paimon MemorySegment
         segments.clear();
         try {
             memoryManager.allocatePages(owner, segments, 1);
@@ -72,6 +79,7 @@ public class MemorySegmentAllocator {
 
     /* Release the segments allocated by the allocator if the task is closed. */
     public void release() {
+        // 算子关闭时释放内存
         memoryManager.release(allocatedSegments);
     }
 }

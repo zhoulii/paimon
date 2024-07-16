@@ -35,6 +35,7 @@ public class MemoryUtils {
     /** The native byte order of the platform on which the system currently runs. */
     public static final ByteOrder NATIVE_BYTE_ORDER = ByteOrder.nativeOrder();
 
+    // 获取 Buffer 的 address 字段的偏移量
     private static final long BUFFER_ADDRESS_FIELD_OFFSET =
             getClassFieldOffset(Buffer.class, "address");
 
@@ -62,6 +63,8 @@ public class MemoryUtils {
 
     private static long getClassFieldOffset(
             @SuppressWarnings("SameParameterValue") Class<?> cl, String fieldName) {
+        // 获取指定字段的内存便宜地址
+        // 也就是存储这个对象时，这个字段在内存中的位置
         try {
             return UNSAFE.objectFieldOffset(cl.getDeclaredField(fieldName));
         } catch (SecurityException e) {
@@ -87,6 +90,14 @@ public class MemoryUtils {
 
     private static Class<?> getClassByName(
             @SuppressWarnings("SameParameterValue") String className) {
+        // 如果方法被调用时传递的参数总是相同的值，编译器可能会触发警告，因为动态传递参数的行为似乎没有必要
+        // 但是方法为了动态处理不同值而设计的，只是目前还没提现出来
+        // 可以使用 @SuppressWarnings("SameParameterValue") 来抑制告警
+        // public static void main(String[] args) {
+        //     getClassByName("java.lang.String"); // 第一处调用，总是传递同一个值 "java.lang.String"
+        //     getClassByName("java.lang.String"); // 第二处调用，总是传递同一个值 "java.lang.String"
+        // }
+
         try {
             return Class.forName(className);
         } catch (ClassNotFoundException e) {
@@ -95,7 +106,9 @@ public class MemoryUtils {
     }
 
     /**
-     * Get native memory address wrapped by the given {@link ByteBuffer}.
+     * 获取 ByteBuffer 的堆外内存地址.
+     *
+     * <p>Get native memory address wrapped by the given {@link ByteBuffer}.
      *
      * @param buffer {@link ByteBuffer} which wraps the native memory address to get
      * @return native memory address wrapped by the given {@link ByteBuffer}

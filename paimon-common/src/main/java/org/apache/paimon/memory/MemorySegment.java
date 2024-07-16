@@ -48,6 +48,9 @@ public final class MemorySegment {
 
     public static final sun.misc.Unsafe UNSAFE = MemoryUtils.UNSAFE;
 
+    // 表示 Java 堆中 byte 数组的实际数据部分相对于数组对象头的偏移量，堆中数组 buffer 的数据部分真实地址可以视为:
+    // BASE_ARRAY_ADDRESS(buffer) + BYTE_ARRAY_BASE_OFFSET + index
+    // index 表示数组下标
     public static final long BYTE_ARRAY_BASE_OFFSET = UNSAFE.arrayBaseOffset(byte[].class);
 
     public static final boolean LITTLE_ENDIAN =
@@ -57,6 +60,9 @@ public final class MemorySegment {
 
     @Nullable private ByteBuffer offHeapBuffer;
 
+    // 对于堆内存和非堆内存，address 具有不同含义
+    // 堆内存：address 表示 Java 堆中 byte 数组的实际数据部分相对于数组对象头的偏移量
+    // 非堆内存：address 表示数组的真实内存地址
     private long address;
 
     private final int size;
@@ -80,14 +86,27 @@ public final class MemorySegment {
         return new MemorySegment(null, buffer, getByteBufferAddress(buffer), buffer.capacity());
     }
 
+    /**
+     * 分配对上内存.
+     *
+     * @param size The size of the memory segment to allocate.
+     * @return A new memory segment of the given size.
+     */
     public static MemorySegment allocateHeapMemory(int size) {
         return wrap(new byte[size]);
     }
 
+    /**
+     * 分配对外内存.
+     *
+     * @param size The size of the memory segment to allocate.
+     * @return A new memory segment of the given size.
+     */
     public static MemorySegment allocateOffHeapMemory(int size) {
         return wrapOffHeapMemory(ByteBuffer.allocateDirect(size));
     }
 
+    // 数据大小，多少个 byte.
     public int size() {
         return size;
     }
@@ -96,6 +115,11 @@ public final class MemorySegment {
         return heapMemory == null;
     }
 
+    /**
+     * 获取堆上内存数组.
+     *
+     * @return The byte array that backs this memory segment.
+     */
     public byte[] getArray() {
         if (heapMemory != null) {
             return heapMemory;
@@ -104,6 +128,13 @@ public final class MemorySegment {
         }
     }
 
+    /**
+     * 截取部分数据，作为 ByteBuffer 对象返回.
+     *
+     * @param offset 偏移量
+     * @param length 长度
+     * @return ByteBuffer
+     */
     public ByteBuffer wrap(int offset, int length) {
         return wrapInternal(offset, length);
     }
@@ -124,6 +155,8 @@ public final class MemorySegment {
     }
 
     public byte get(int index) {
+        // address + index 就是第 index 字段数据的真实地址偏移量
+        // 加上 heapMemory 的起始地址，就是字段真实地址
         return UNSAFE.getByte(heapMemory, address + index);
     }
 
@@ -131,16 +164,39 @@ public final class MemorySegment {
         UNSAFE.putByte(heapMemory, address + index, b);
     }
 
+    /**
+     * 从内存中读取数据到 dst 数组中.
+     *
+     * @param index 读取数据的起始位置
+     * @param dst 目标数组
+     */
     public void get(int index, byte[] dst) {
         get(index, dst, 0, dst.length);
     }
 
+    /**
+     * 拷贝数据到内存中.
+     *
+     * @param index 拷贝数据的起始位置
+     * @param src 要拷贝的数组
+     */
     public void put(int index, byte[] src) {
         put(index, src, 0, src.length);
     }
 
+    /**
+     * 从内存中读取数据到 dst 数组中.
+     *
+     * @param index 读取数据的起始位置
+     * @param dst 目标数组
+     * @param offset 目标数组的偏移量
+     * @param length 读取数据的长度
+     */
     public void get(int index, byte[] dst, int offset, int length) {
         // check the byte array offset and length and the status
+        // offset 和 length 不能为负数
+        // offset + length 不能大于整数的最大值
+        // dst.length - offset 的长度要大于要复制到长度 length
         if ((offset | length | (offset + length) | (dst.length - (offset + length))) < 0) {
             throw new IndexOutOfBoundsException();
         }
@@ -149,6 +205,14 @@ public final class MemorySegment {
                 heapMemory, address + index, dst, BYTE_ARRAY_BASE_OFFSET + offset, length);
     }
 
+    /**
+     * 拷贝数据到内存中.
+     *
+     * @param index 拷贝数据的起始位置
+     * @param src 要拷贝的数组
+     * @param offset 要拷贝的数组的偏移量
+     * @param length 拷贝数据的长度
+     */
     public void put(int index, byte[] src, int offset, int length) {
         // check the byte array offset and length
         if ((offset | length | (offset + length) | (src.length - (offset + length))) < 0) {
@@ -380,15 +444,18 @@ public final class MemorySegment {
     // -------------------------------------------------------------------------
 
     public void get(DataOutput out, int offset, int length) throws IOException {
+        // 读取当前 MemorySegment 中的内容，通过 out 写出
         if (heapMemory != null) {
             out.write(heapMemory, offset, length);
         } else {
+            // 一次写出 8 个字节
             while (length >= 8) {
                 out.writeLong(getLongBigEndian(offset));
                 offset += 8;
                 length -= 8;
             }
 
+            // 剩余部分，一次写出 1 个字节
             while (length > 0) {
                 out.writeByte(get(offset));
                 offset++;
@@ -398,14 +465,19 @@ public final class MemorySegment {
     }
 
     public void put(DataInput in, int offset, int length) throws IOException {
+        // 读取 in，写入 MemorySegment
         if (heapMemory != null) {
+            // 从 offset 开始写入，写入长度为 length
             in.readFully(heapMemory, offset, length);
         } else {
+            // 一次写入 8 个字节
             while (length >= 8) {
                 putLongBigEndian(offset, in.readLong());
                 offset += 8;
                 length -= 8;
             }
+
+            // 一次写入 1 个字节
             while (length > 0) {
                 put(offset, in.readByte());
                 offset++;
@@ -415,6 +487,7 @@ public final class MemorySegment {
     }
 
     public void get(int offset, ByteBuffer target, int numBytes) {
+        // 拷贝 numBytes 个字节数据到 target
         // check the byte array offset and length
         if ((offset | numBytes | (offset + numBytes)) < 0) {
             throw new IndexOutOfBoundsException();
@@ -431,6 +504,7 @@ public final class MemorySegment {
         }
 
         if (target.isDirect()) {
+            // 直接拷贝内存到 target
             // copy to the target memory directly
             final long targetPointer = getByteBufferAddress(target) + targetOffset;
             final long sourcePointer = address + offset;
@@ -439,6 +513,9 @@ public final class MemorySegment {
             target.position(targetOffset + numBytes);
         } else if (target.hasArray()) {
             // move directly into the byte array
+            // 当 buffer 的底层是 array 时，buffer 的第一个元素并不一定是数组的第一个元素
+            // buffer 的第一个元素对应 array 的下标为 target.arrayOffset()
+            // 所以 buffer position 对应的 array 下标为 targetOffset + target.arrayOffset()
             get(offset, target.array(), targetOffset + target.arrayOffset(), numBytes);
 
             // this must be after the get() call to ensue that the byte buffer is not
@@ -452,6 +529,7 @@ public final class MemorySegment {
     }
 
     public void put(int offset, ByteBuffer source, int numBytes) {
+        // 拷贝 numBytes 个字节数据到 MemorySegment
         // check the byte array offset and length
         if ((offset | numBytes | (offset + numBytes)) < 0) {
             throw new IndexOutOfBoundsException();
@@ -487,6 +565,7 @@ public final class MemorySegment {
     }
 
     public void copyTo(int offset, MemorySegment target, int targetOffset, int numBytes) {
+        // 拷贝数据到一个 MemorySegment
         final byte[] thisHeapRef = this.heapMemory;
         final byte[] otherHeapRef = target.heapMemory;
         final long thisPointer = this.address + offset;
@@ -496,14 +575,17 @@ public final class MemorySegment {
     }
 
     public void copyToUnsafe(int offset, Object target, int targetPointer, int numBytes) {
+        // 拷贝到一块 Unsafe 内存
         UNSAFE.copyMemory(this.heapMemory, this.address + offset, target, targetPointer, numBytes);
     }
 
     public void copyFromUnsafe(int offset, Object source, int sourcePointer, int numBytes) {
+        // 从一块 Unsafe 内存拷贝
         UNSAFE.copyMemory(source, sourcePointer, this.heapMemory, this.address + offset, numBytes);
     }
 
     public int compare(MemorySegment seg2, int offset1, int offset2, int len) {
+        // 比较一段长度
         while (len >= 8) {
             long l1 = this.getLongBigEndian(offset1);
             long l2 = seg2.getLongBigEndian(offset2);
@@ -531,6 +613,7 @@ public final class MemorySegment {
     }
 
     public int compare(MemorySegment seg2, int offset1, int offset2, int len1, int len2) {
+        // 比较一段长度
         final int minLength = Math.min(len1, len2);
         int c = compare(seg2, offset1, offset2, minLength);
         return c == 0 ? (len1 - len2) : c;
@@ -538,6 +621,7 @@ public final class MemorySegment {
 
     public void swapBytes(
             byte[] tempBuffer, MemorySegment seg2, int offset1, int offset2, int len) {
+        // 和 seg2 交换一段内存
         if ((offset1 | offset2 | len | (tempBuffer.length - len)) >= 0) {
             final long thisPos = this.address + offset1;
             final long otherPos = seg2.address + offset2;
@@ -570,6 +654,7 @@ public final class MemorySegment {
      * @return true if equal, false otherwise
      */
     public boolean equalTo(MemorySegment seg2, int offset1, int offset2, int length) {
+        // 比较一段内存是否相等
         int i = 0;
 
         // we assume unaligned accesses are supported.

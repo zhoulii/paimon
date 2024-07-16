@@ -34,23 +34,32 @@ public interface MemorySegmentPool extends MemorySegmentSource {
     int DEFAULT_PAGE_SIZE = 32 * 1024;
 
     /**
-     * Get the page size of each page this pool holds.
+     * Page 的大小.
+     *
+     * <p>Get the page size of each page this pool holds.
      *
      * @return the page size, the bytes size in one page.
      */
     int pageSize();
 
     /**
-     * Return all pages back into this pool.
+     * 返还 Page.
+     *
+     * <p>Return all pages back into this pool.
      *
      * @param memory the pages which want to be returned.
      */
     void returnAll(List<MemorySegment> memory);
 
-    /** @return Free page number. */
+    /**
+     * 可用 Page.
+     *
+     * @return Free page number.
+     */
     int freePages();
 
     static MemorySegmentPool createHeapPool(MemorySize maxMemory, MemorySize pageSize) {
+        // 创建一个 HeapMemorySegmentPool
         return new HeapMemorySegmentPool(maxMemory.getBytes(), (int) pageSize.getBytes());
     }
 }

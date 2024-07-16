@@ -20,7 +20,11 @@ package org.apache.paimon.memory;
 
 import java.util.List;
 
-/** A {@link MemorySegmentPool} without cache. */
+/**
+ * 一个没有缓存的 MemorySegmentPool，每次申请只要数量不超限制，都会创建一个新的 MemorySegment.
+ *
+ * <p>A {@link MemorySegmentPool} without cache.
+ */
 public class CachelessSegmentPool implements MemorySegmentPool {
 
     private final int maxPages;

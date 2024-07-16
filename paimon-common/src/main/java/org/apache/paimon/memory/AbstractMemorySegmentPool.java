@@ -30,17 +30,23 @@ public abstract class AbstractMemorySegmentPool implements MemorySegmentPool {
     private int numPage;
 
     public AbstractMemorySegmentPool(long maxMemory, int pageSize) {
+        // 持有的 MemorySegment
         this.segments = new LinkedList<>();
+        // 可持有的最大 MemorySegment 个数
         this.maxPages = (int) (maxMemory / pageSize);
+        // page 大小
         this.pageSize = pageSize;
+        // 目前 page 数
         this.numPage = 0;
     }
 
     @Override
     public MemorySegment nextSegment() {
         if (this.segments.size() > 0) {
+            // 有空闲的直接分配
             return this.segments.poll();
         } else if (numPage < maxPages) {
+            // 没空闲的并且数量没超，申请一块内存
             numPage++;
             return allocateMemory();
         }
@@ -62,6 +68,7 @@ public abstract class AbstractMemorySegmentPool implements MemorySegmentPool {
 
     @Override
     public int freePages() {
+        // 直接可用的 + 还能申请的
         return segments.size() + maxPages - numPage;
     }
 }

@@ -22,11 +22,14 @@ package org.apache.paimon.memory;
 public class HeapMemorySegmentPool extends AbstractMemorySegmentPool {
 
     public HeapMemorySegmentPool(long maxMemory, int pageSize) {
+        // maxMemory 最大内存
+        // pageSize page 大小
         super(maxMemory, pageSize);
     }
 
     @Override
     protected MemorySegment allocateMemory() {
+        // 分配一块堆上内存
         return MemorySegment.allocateHeapMemory(pageSize);
     }
 }

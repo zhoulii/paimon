@@ -22,7 +22,11 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
 
-/** A {@link MemorySegmentPool} for allocated segments. */
+/**
+ * 一个固定的内存池，用于存储已经分配好的内存.
+ *
+ * <p>A {@link MemorySegmentPool} for allocated segments.
+ */
 public class ArraySegmentPool implements MemorySegmentPool {
 
     private final Queue<MemorySegment> segments;

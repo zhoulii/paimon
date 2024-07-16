@@ -41,20 +41,30 @@ import static org.apache.paimon.memory.MemorySegment.LITTLE_ENDIAN;
 /** Utils for {@link MemorySegment}. */
 public class MemorySegmentUtils {
 
+    // 位计算，用来除以 8
+    // 比如给定一个字节数组，第 16 位（0 开始）对应第 2 个字节（0 开始）
     private static final int ADDRESS_BITS_PER_WORD = 3;
 
+    // 位计算，与 BIT_BYTE_INDEX_MASK 做 & 相当于除以 8 取余数
     public static final int BIT_BYTE_INDEX_MASK = 7;
 
+    // 可复用 byte 数组长度
     private static final int MAX_BYTES_LENGTH = 1024 * 64;
 
+    // 可复用字符数组长度
     private static final int MAX_CHARS_LENGTH = 1024 * 32;
 
+    // 存储可复用字节数组
     private static final ThreadLocal<byte[]> BYTES_LOCAL = new ThreadLocal<>();
+
+    // 存储可复用字符数组
     private static final ThreadLocal<char[]> CHARS_LOCAL = new ThreadLocal<>();
 
     /**
-     * Allocate bytes that is only for temporary usage, it should not be stored in somewhere else.
-     * Use a {@link ThreadLocal} to reuse bytes to avoid overhead of byte[] new and gc.
+     * 复用字节数组，减少对象创建引起 GC.
+     *
+     * <p>Allocate bytes that is only for temporary usage, it should not be stored in somewhere
+     * else. Use a {@link ThreadLocal} to reuse bytes to avoid overhead of byte[] new and gc.
      *
      * <p>If there are methods that can only accept a byte[], instead of a MemorySegment[]
      * parameter, we can allocate a reuse bytes and copy the MemorySegment data to byte[], then call
@@ -78,6 +88,7 @@ public class MemorySegmentUtils {
     }
 
     public static char[] allocateReuseChars(int length) {
+        // 复用字符数组
         char[] chars = CHARS_LOCAL.get();
 
         if (chars == null) {
@@ -95,7 +106,9 @@ public class MemorySegmentUtils {
     }
 
     /**
-     * Copy bytes of segments to output view.
+     * 拷贝多个内存段到 DataOutputView.
+     *
+     * <p>Copy bytes of segments to output view.
      *
      * <p>Note: It just copies the data in, not include the length.
      *
@@ -136,7 +149,9 @@ public class MemorySegmentUtils {
     }
 
     /**
-     * Copy target segments from source byte[].
+     * 从 byte 数组拷贝到 MemorySegment.
+     *
+     * <p>Copy target segments from source byte[].
      *
      * @param segments target segments.
      * @param offset target segments offset.
@@ -155,6 +170,7 @@ public class MemorySegmentUtils {
 
     private static void copyMultiSegmentsFromBytes(
             MemorySegment[] segments, int offset, byte[] bytes, int bytesOffset, int numBytes) {
+        // 从 byte 数组拷贝到多个 MemorySegment.
         int remainSize = numBytes;
         for (MemorySegment segment : segments) {
             int remain = segment.size() - offset;
@@ -175,7 +191,11 @@ public class MemorySegmentUtils {
         }
     }
 
-    /** Maybe not copied, if want copy, please use copyTo. */
+    /**
+     * 获取字节数组，如果只有一个 MemorySegment，并且需要这个 Segment 的所有字节，直接返回底层数组，不发生拷贝. copyToBytes 方法则会拷贝到一个新数组.
+     *
+     * <p>Maybe not copied, if want copy, please use copyTo.
+     */
     public static byte[] getBytes(MemorySegment[] segments, int baseOffset, int sizeInBytes) {
         // avoid copy if `base` is `byte[]`
         if (segments.length == 1) {
@@ -195,7 +215,9 @@ public class MemorySegmentUtils {
     }
 
     /**
-     * Equals two memory segments regions.
+     * 比较两段内存.
+     *
+     * <p>Equals two memory segments regions.
      *
      * @param segments1 Segments 1
      * @param offset1 Offset of segments1 to start equaling
@@ -224,6 +246,7 @@ public class MemorySegmentUtils {
             MemorySegment[] segments2,
             int offset2,
             int len) {
+        // 比较多段内存
         if (len == 0) {
             // quick way and avoid segSize is zero.
             return true;
@@ -260,7 +283,9 @@ public class MemorySegmentUtils {
     }
 
     /**
-     * Copy segments to a new byte[].
+     * 拷贝多个 MemorySegment 到一个新数组.
+     *
+     * <p>Copy segments to a new byte[].
      *
      * @param segments Source segments.
      * @param offset Source segments offset.
@@ -271,7 +296,9 @@ public class MemorySegmentUtils {
     }
 
     /**
-     * Copy segments to target byte[].
+     * 拷贝多个 MemorySegment 到一个指定数组.
+     *
+     * <p>Copy segments to target byte[].
      *
      * @param segments Source segments.
      * @param offset Source segments offset.
@@ -291,6 +318,7 @@ public class MemorySegmentUtils {
 
     public static void copyMultiSegmentsToBytes(
             MemorySegment[] segments, int offset, byte[] bytes, int bytesOffset, int numBytes) {
+        // 拷贝多个 MemorySegment 到一个指定数组.
         int remainSize = numBytes;
         for (MemorySegment segment : segments) {
             int remain = segment.size() - offset;
@@ -312,7 +340,9 @@ public class MemorySegmentUtils {
     }
 
     /**
-     * Copy segments to target unsafe pointer.
+     * 拷贝多个 MemorySegment 到一块指定内存.
+     *
+     * <p>Copy segments to target unsafe pointer.
      *
      * @param segments Source segments.
      * @param offset The position where the bytes are started to be read from these memory segments.
@@ -331,6 +361,7 @@ public class MemorySegmentUtils {
 
     private static void copyMultiSegmentsToUnsafe(
             MemorySegment[] segments, int offset, Object target, int pointer, int numBytes) {
+        // 拷贝多个 MemorySegment 到一块指定内存.
         int remainSize = numBytes;
         for (MemorySegment segment : segments) {
             int remain = segment.size() - offset;
@@ -352,7 +383,11 @@ public class MemorySegmentUtils {
     }
 
     /**
-     * hash segments to int, numBytes must be aligned to 4 bytes.
+     * 取一段数据计算 HASH 值，numBytes 是 4 字节对齐.
+     *
+     * <p>按照 4 字节对齐计算 HASH 值.
+     *
+     * <p>hash segments to int, numBytes must be aligned to 4 bytes.
      *
      * @param segments Source segments.
      * @param offset Source segments offset.
@@ -369,11 +404,14 @@ public class MemorySegmentUtils {
     private static int hashMultiSegByWords(MemorySegment[] segments, int offset, int numBytes) {
         byte[] bytes = allocateReuseBytes(numBytes);
         copyMultiSegmentsToBytes(segments, offset, bytes, 0, numBytes);
+        // 计算 UnSafe 内存一段区间的 HASH 值.
         return MurmurHashUtils.hashUnsafeBytesByWords(bytes, BYTE_ARRAY_BASE_OFFSET, numBytes);
     }
 
     /**
-     * hash segments to int.
+     * 和 hashByWords 的区别在于计算块的单位不同.
+     *
+     * <p>hash segments to int.
      *
      * @param segments Source segments.
      * @param offset Source segments offset.
@@ -399,7 +437,9 @@ public class MemorySegmentUtils {
     }
 
     /**
-     * Find equal segments2 in segments1.
+     * segments1 中找到和 segments2 相等的一段起始 offset.
+     *
+     * <p>Find equal segments2 in segments1.
      *
      * @param segments1 segs to find.
      * @param segments2 sub segs.
@@ -450,7 +490,9 @@ public class MemorySegmentUtils {
     }
 
     /**
-     * Given a bit index, return the byte index containing it.
+     * 给定位下标，计算字节下标.
+     *
+     * <p>Given a bit index, return the byte index containing it.
      *
      * @param bitIndex the bit index.
      * @return the byte index.
@@ -460,21 +502,31 @@ public class MemorySegmentUtils {
     }
 
     /**
-     * unset bit.
+     * 清除一个指定的 bit，即将一个指定的 bit 置零.
+     *
+     * <p>unset bit.
      *
      * @param segment target segment.
      * @param baseOffset bits base offset.
      * @param index bit index from base offset.
      */
     public static void bitUnSet(MemorySegment segment, int baseOffset, int index) {
+        // 计算 bit 在哪个字节
         int offset = baseOffset + byteIndex(index);
+        // 获取到字节值
         byte current = segment.get(offset);
+        // (index & 7) 提取 index 的低 3 位（等价于 index % 8），得到位索引在字节中的位置
+        // 1 << (index & 7) 将 1 左移到该位位置，形成一个掩码，例如，如果 index & 7 等于 2，掩码就是 00000100。
+        // ~(1 << (index & 7)) 对掩码取反，形成一个取消（unset）该位置的掩码，例如，如果 index & 7 为 2，掩码结果是 11111011。
+        // current &= ~(1 << (index & 7)) 清除 current 中对应位的位置，保留其他位。
         current &= ~(1 << (index & BIT_BYTE_INDEX_MASK));
         segment.put(offset, current);
     }
 
     /**
-     * set bit.
+     * 将一个指定的 bit 置 1.
+     *
+     * <p>set bit.
      *
      * @param segment target segment.
      * @param baseOffset bits base offset.
@@ -488,7 +540,9 @@ public class MemorySegmentUtils {
     }
 
     /**
-     * read bit.
+     * 读取一个指定 bit.
+     *
+     * <p>read bit.
      *
      * @param segment target segment.
      * @param baseOffset bits base offset.
@@ -501,7 +555,9 @@ public class MemorySegmentUtils {
     }
 
     /**
-     * unset bit from segments.
+     * 将一个指定的 bit 置零.
+     *
+     * <p>unset bit from segments.
      *
      * @param segments target segments.
      * @param baseOffset bits base offset.
@@ -532,7 +588,9 @@ public class MemorySegmentUtils {
     }
 
     /**
-     * set bit from segments.
+     * 将一个指定的 bit 置 1.
+     *
+     * <p>set bit from segments.
      *
      * @param segments target segments.
      * @param baseOffset bits base offset.
@@ -563,7 +621,9 @@ public class MemorySegmentUtils {
     }
 
     /**
-     * read bit from segments.
+     * 读取一个 bit 的值.
+     *
+     * <p>read bit from segments.
      *
      * @param segments target segments.
      * @param baseOffset bits base offset.

@@ -22,7 +22,10 @@ import org.apache.paimon.memory.AbstractMemorySegmentPool;
 import org.apache.paimon.memory.MemorySegment;
 
 /**
- * Flink memory segment pool allocates segment from flink managed memory for paimon writer buffer.
+ * 分配的内存来源于 flink managed memory.
+ *
+ * <p>Flink memory segment pool allocates segment from flink managed memory for paimon writer
+ * buffer.
  */
 public class FlinkMemorySegmentPool extends AbstractMemorySegmentPool {
     private final MemorySegmentAllocator allocator;
