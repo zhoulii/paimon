@@ -18,6 +18,7 @@
 
 package org.apache.paimon.table.source.snapshot;
 
+import org.apache.paimon.CoreOptions;
 import org.apache.paimon.Snapshot;
 import org.apache.paimon.Snapshot.CommitKind;
 import org.apache.paimon.data.BinaryRow;
@@ -46,7 +47,12 @@ import java.util.Optional;
 
 import static org.apache.paimon.utils.Preconditions.checkArgument;
 
-/** {@link StartingScanner} for incremental changes by snapshot. */
+/**
+ * snapshot 区间的增量扫描器，用于批读. for the {@link CoreOptions.StartupMode#INCREMENTAL} & {@link
+ * CoreOptions.StartupMode#INCREMENTAL_BETWEEN} startup mode.
+ *
+ * <p>{@link StartingScanner} for incremental changes by snapshot.
+ */
 public class IncrementalStartingScanner extends AbstractStartingScanner {
 
     private static final Logger LOG = LoggerFactory.getLogger(IncrementalStartingScanner.class);
@@ -82,6 +88,7 @@ public class IncrementalStartingScanner extends AbstractStartingScanner {
                                         // need merge for primary key table
                                         false,
                                         split.bucketPath(),
+                                        // 一个 bucket 一个 deletion file.
                                         split.deletionFiles().orElse(null)),
                                 k -> new ArrayList<>())
                         .addAll(split.dataFiles());
@@ -89,6 +96,7 @@ public class IncrementalStartingScanner extends AbstractStartingScanner {
         }
 
         List<Split> result = new ArrayList<>();
+        // 生成 DataSplit
         for (Map.Entry<SplitInfo, List<DataFileMeta>> entry : grouped.entrySet()) {
             BinaryRow partition = entry.getKey().partition;
             int bucket = entry.getKey().bucket;
@@ -97,6 +105,7 @@ public class IncrementalStartingScanner extends AbstractStartingScanner {
             List<DeletionFile> deletionFiles = entry.getKey().deletionFiles;
             for (SplitGenerator.SplitGroup splitGroup :
                     reader.splitGenerator().splitForBatch(entry.getValue())) {
+                // 将 files 切分成一批 SplitGroup，每个 SplitGroup 生成一个 DataSplit.
                 DataSplit.Builder dataSplitBuilder =
                         DataSplit.builder()
                                 .withSnapshot(endingSnapshotId)
@@ -116,7 +125,9 @@ public class IncrementalStartingScanner extends AbstractStartingScanner {
     }
 
     /**
-     * Check the validity of staring snapshotId early.
+     * 检查 startingSnapshotId 和 endingSnapshotId 的合法性.
+     *
+     * <p>Check the validity of staring snapshotId early.
      *
      * @return If the check passes return empty.
      */
@@ -164,6 +175,8 @@ public class IncrementalStartingScanner extends AbstractStartingScanner {
     @SuppressWarnings({"unchecked", "rawtypes"})
     private List<DataSplit> readDeltaSplits(SnapshotReader reader, Snapshot s) {
         if (s.commitKind() != CommitKind.APPEND) {
+            // compact 都是在一个 snapshot 基础之上做的，没有新增数据，应该跳过.
+            // OVERWRITE 类型的 snapshot 不读的话可能会丢数据，似乎应该去读才能保证更新操作的完整性？
             // ignore COMPACT and OVERWRITE
             return Collections.emptyList();
         }
@@ -172,6 +185,7 @@ public class IncrementalStartingScanner extends AbstractStartingScanner {
 
     @SuppressWarnings({"unchecked", "rawtypes"})
     private List<DataSplit> readChangeLogSplits(SnapshotReader reader, Snapshot s) {
+        // changelog 不合并，不需要判断 compact commit kind.
         if (s.commitKind() == CommitKind.OVERWRITE) {
             // ignore OVERWRITE
             return Collections.emptyList();
@@ -179,7 +193,11 @@ public class IncrementalStartingScanner extends AbstractStartingScanner {
         return (List) reader.withSnapshot(s).withMode(ScanMode.CHANGELOG).read().splits();
     }
 
-    /** Split information to pass. */
+    /**
+     * Split 描述，包含分区信息、bucket 信息、包含的文件、deletion vector 标记文件.
+     *
+     * <p>Split information to pass.
+     */
     private static class SplitInfo {
 
         private final BinaryRow partition;

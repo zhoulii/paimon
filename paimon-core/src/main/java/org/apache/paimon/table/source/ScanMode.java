@@ -21,12 +21,24 @@ package org.apache.paimon.table.source;
 /** Scan which part of the snapshot. */
 public enum ScanMode {
 
-    /** Scan complete data files of a snapshot. */
+    /**
+     * 扫描 SNAPSHOT 全量文件.
+     *
+     * <p>Scan complete data files of a snapshot.
+     */
     ALL,
 
-    /** Only scan newly changed files of a snapshot. */
+    /**
+     * 扫描 SNAPSHOT 增量文件.
+     *
+     * <p>Only scan newly changed files of a snapshot.
+     */
     DELTA,
 
-    /** Only scan changelog files of a snapshot. */
+    /**
+     * 扫描 changelog 文件.
+     *
+     * <p>Only scan changelog files of a snapshot.
+     */
     CHANGELOG
 }

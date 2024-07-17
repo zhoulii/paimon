@@ -30,7 +30,9 @@ import org.slf4j.LoggerFactory;
 import javax.annotation.Nullable;
 
 /**
- * {@link StartingScanner} for the {@link StartupMode#COMPACTED_FULL} startup mode with
+ * 流读：读取最新的 full compacted snapshot，然后增量读取. 批读：读取最新的 full compacted snapshot.
+ *
+ * <p>{@link StartingScanner} for the {@link StartupMode#COMPACTED_FULL} startup mode with
  * 'full-compaction.delta-commits'.
  */
 public class FullCompactedStartingScanner extends AbstractStartingScanner {
@@ -47,6 +49,7 @@ public class FullCompactedStartingScanner extends AbstractStartingScanner {
 
     @Nullable
     protected Long pick() {
+        // 找到最新的 full compacted snapshot，找不到就读取最新的 snapshot.
         return snapshotManager.pickOrLatest(this::picked);
     }
 
@@ -81,6 +84,8 @@ public class FullCompactedStartingScanner extends AbstractStartingScanner {
     }
 
     public static boolean isFullCompactedIdentifier(long identifier, int deltaCommits) {
+        // 同一个 identifier 可以对应 compact snapshot 与 append snapshot
+        // append snapshot 会先提交，后提交 compact snapshot
         return identifier % deltaCommits == 0 || identifier == Long.MAX_VALUE;
     }
 }

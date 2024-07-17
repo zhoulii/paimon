@@ -18,11 +18,18 @@
 
 package org.apache.paimon.table.source.snapshot;
 
-/** That contains some information that will be used out of StartingScanner. */
+/**
+ * 代码中只看到了 spark 有使用这个类.
+ *
+ * <p>That contains some information that will be used out of StartingScanner.
+ */
 public class StartingContext {
     /**
-     * Notice: The snapshot ID is the initial one corresponding to the StartScanner configuration,
-     * not necessarily the snapshot ID at the time of the actual scan. E.g, in
+     * snapshotId 不一定会被扫描，比如 ContinuousFromSnapshotFullStartingScanner，最开始扫描的 snapshotId 时这个 ID 和
+     * earliest 之间较大的那个.
+     *
+     * <p>Notice: The snapshot ID is the initial one corresponding to the StartScanner
+     * configuration, not necessarily the snapshot ID at the time of the actual scan. E.g, in
      * ContinuousFromSnapshotFullStartingScanner, this snapshot ID used in the first scan is the
      * bigger one between the configured one and the earliest one.
      */

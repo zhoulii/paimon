@@ -25,7 +25,11 @@ import org.apache.paimon.utils.SnapshotManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/** {@link StartingScanner} for the {@link CoreOptions.StartupMode#LATEST_FULL} startup mode. */
+/**
+ * 批读：读取最新 snapshot. 流读：读取最新 snapshot，然后增量读取.
+ *
+ * <p>{@link StartingScanner} for the {@link CoreOptions.StartupMode#LATEST_FULL} startup mode.
+ */
 public class FullStartingScanner extends AbstractStartingScanner {
 
     private static final Logger LOG = LoggerFactory.getLogger(FullStartingScanner.class);

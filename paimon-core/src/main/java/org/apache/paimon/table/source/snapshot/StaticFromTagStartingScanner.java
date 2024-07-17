@@ -24,7 +24,11 @@ import org.apache.paimon.table.source.ScanMode;
 import org.apache.paimon.utils.SnapshotManager;
 import org.apache.paimon.utils.TagManager;
 
-/** {@link StartingScanner} for the {@link CoreOptions#SCAN_TAG_NAME} of a batch read. */
+/**
+ * 批读：增量读取 tag 对应的 snapshot.
+ *
+ * <p>{@link StartingScanner} for the {@link CoreOptions#SCAN_TAG_NAME} of a batch read.
+ */
 public class StaticFromTagStartingScanner extends AbstractStartingScanner {
 
     private final String tagName;

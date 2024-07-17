@@ -21,7 +21,11 @@ package org.apache.paimon.table.source.snapshot;
 import org.apache.paimon.table.source.ScanMode;
 import org.apache.paimon.utils.SnapshotManager;
 
-/** The abstract class for StartingScanner. */
+/**
+ * StartingScanner 的抽象实现.
+ *
+ * <p>The abstract class for StartingScanner.
+ */
 public abstract class AbstractStartingScanner implements StartingScanner {
 
     protected final SnapshotManager snapshotManager;
@@ -36,9 +40,15 @@ public abstract class AbstractStartingScanner implements StartingScanner {
         return ScanMode.DELTA;
     }
 
+    /**
+     * 这个方法的返回值似乎只是给 spark 使用的.
+     *
+     * @return StartingContext
+     */
     @Override
     public StartingContext startingContext() {
         if (startingSnapshotId == null) {
+            // 没有指定 startingSnapshotId，则返回 EMPTY，其中 snapshotId 为 1，scanFullSnapshot 为 false.
             return StartingContext.EMPTY;
         } else {
             return new StartingContext(startingSnapshotId, startingScanMode() == ScanMode.ALL);

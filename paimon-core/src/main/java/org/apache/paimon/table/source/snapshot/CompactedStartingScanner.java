@@ -28,7 +28,12 @@ import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 
-/** {@link StartingScanner} for the {@link CoreOptions.StartupMode#COMPACTED_FULL} startup mode. */
+/**
+ * 和 FullCompactedStartingScanner 的区别在于，这个 Scanner 只要是 COMPACT 类型的 snapshot
+ * 就读，FullCompactedStartingScanner 还要判断下 commit identifier 是否是 full-compaction.delta-commits 的整数倍.
+ *
+ * <p>{@link StartingScanner} for the {@link CoreOptions.StartupMode#COMPACTED_FULL} startup mode.
+ */
 public class CompactedStartingScanner extends AbstractStartingScanner {
 
     private static final Logger LOG = LoggerFactory.getLogger(CompactedStartingScanner.class);

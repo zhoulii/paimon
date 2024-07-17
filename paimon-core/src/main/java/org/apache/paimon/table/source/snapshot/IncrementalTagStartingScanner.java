@@ -22,7 +22,13 @@ import org.apache.paimon.Snapshot;
 import org.apache.paimon.utils.SnapshotManager;
 import org.apache.paimon.utils.TagManager;
 
-/** {@link StartingScanner} for incremental changes by tag. */
+/**
+ * 批读：读取两个 tag 之间的 snapshot 变化，不包含 start tag.
+ *
+ * <p>和 IncrementalStartingScanner 的实现逻辑有些不一致，IncrementalStartingScanner 过滤了 OVERWRITE 和 COMPACT.
+ *
+ * <p>{@link StartingScanner} for incremental changes by tag.
+ */
 public class IncrementalTagStartingScanner extends AbstractStartingScanner {
 
     private final String start;

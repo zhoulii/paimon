@@ -24,7 +24,11 @@ import org.apache.paimon.utils.SnapshotManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/** {@link StartingScanner} used internally for stand-alone streaming compact job sources. */
+/**
+ * 给单独的合并作业使用.
+ *
+ * <p>{@link StartingScanner} used internally for stand-alone streaming compact job sources.
+ */
 public class ContinuousCompactorStartingScanner extends AbstractStartingScanner {
 
     private static final Logger LOG =
@@ -47,6 +51,7 @@ public class ContinuousCompactorStartingScanner extends AbstractStartingScanner 
         for (long id = latestSnapshotId; id >= earliestSnapshotId; id--) {
             Snapshot snapshot = snapshotManager.snapshot(id);
             if (snapshot.commitKind() == Snapshot.CommitKind.COMPACT) {
+                // 找到最新合并生成的 snapshot.
                 LOG.debug("Found latest compact snapshot {}, reading from the next snapshot.", id);
                 return new NextSnapshot(id + 1);
             }

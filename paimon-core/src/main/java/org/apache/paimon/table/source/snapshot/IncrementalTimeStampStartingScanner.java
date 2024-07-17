@@ -18,11 +18,17 @@
 
 package org.apache.paimon.table.source.snapshot;
 
+import org.apache.paimon.CoreOptions;
 import org.apache.paimon.Snapshot;
 import org.apache.paimon.table.source.ScanMode;
 import org.apache.paimon.utils.SnapshotManager;
 
-/** {@link StartingScanner} for incremental changes by timestamp. */
+/**
+ * 时间区间的增量扫描器，用于批读. for the {@link CoreOptions.StartupMode#INCREMENTAL} & {@link
+ * CoreOptions.StartupMode#INCREMENTAL_BETWEEN_TIMESTAMP} startup mode.
+ *
+ * <p>{@link StartingScanner} for incremental changes by timestamp.
+ */
 public class IncrementalTimeStampStartingScanner extends AbstractStartingScanner {
 
     private final long startTimestamp;
@@ -38,6 +44,7 @@ public class IncrementalTimeStampStartingScanner extends AbstractStartingScanner
         this.startTimestamp = startTimestamp;
         this.endTimestamp = endTimestamp;
         this.scanMode = scanMode;
+        // startTimestamp 之前的一个 snapshot.
         Snapshot startingSnapshot = snapshotManager.earlierOrEqualTimeMills(startTimestamp);
         if (startingSnapshot != null) {
             this.startingSnapshotId = startingSnapshot.id();
@@ -48,13 +55,17 @@ public class IncrementalTimeStampStartingScanner extends AbstractStartingScanner
     public Result scan(SnapshotReader reader) {
         Snapshot earliestSnapshot = snapshotManager.snapshot(snapshotManager.earliestSnapshotId());
         Snapshot latestSnapshot = snapshotManager.latestSnapshot();
+        // startTimestamp 大于最新的 snapshot 时间或者 endTimestamp 小于最早的 snapshot 时间，表示没有 snapshot 可读.
         if (startTimestamp > latestSnapshot.timeMillis()
                 || endTimestamp < earliestSnapshot.timeMillis()) {
             return new NoSnapshot();
         }
+
+        // 如果 startTimestamp 之前不存在 snapshot，则使用 earliestSnapshot.id() - 1 作为 startSnapshotId.
         Long startSnapshotId =
                 (startingSnapshotId == null) ? earliestSnapshot.id() - 1 : startingSnapshotId;
         Snapshot endSnapshot = snapshotManager.earlierOrEqualTimeMills(endTimestamp);
+        // 经过前面的判断，endSnapshot 不太可能为空.
         Long endSnapshotId = (endSnapshot == null) ? latestSnapshot.id() : endSnapshot.id();
         IncrementalStartingScanner incrementalStartingScanner =
                 new IncrementalStartingScanner(

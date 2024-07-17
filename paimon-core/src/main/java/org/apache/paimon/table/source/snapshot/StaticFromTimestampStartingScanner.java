@@ -29,8 +29,10 @@ import org.slf4j.LoggerFactory;
 import javax.annotation.Nullable;
 
 /**
- * {@link StartingScanner} for the {@link CoreOptions.StartupMode#FROM_TIMESTAMP} startup mode of a
- * batch read.
+ * 批读：读取小于等于 startupMillis 的 snapshot.
+ *
+ * <p>{@link StartingScanner} for the {@link CoreOptions.StartupMode#FROM_TIMESTAMP} startup mode of
+ * a batch read.
  */
 public class StaticFromTimestampStartingScanner extends AbstractStartingScanner {
 

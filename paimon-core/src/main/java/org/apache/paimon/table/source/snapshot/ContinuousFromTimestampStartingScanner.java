@@ -25,8 +25,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * {@link StartingScanner} for the {@link CoreOptions.StartupMode#FROM_TIMESTAMP} startup mode of a
- * streaming read.
+ * 流读：找到 startupMillis 之前的 snapshot，这个 snapshot 不读，只读取之后的增量. 批读：找到 startupMillis 之前的 snapshot，只读这个
+ * snapshot.
+ *
+ * <p>{@link StartingScanner} for the {@link CoreOptions.StartupMode#FROM_TIMESTAMP} startup mode of
+ * a streaming read.
  */
 public class ContinuousFromTimestampStartingScanner extends AbstractStartingScanner {
 
@@ -44,6 +47,7 @@ public class ContinuousFromTimestampStartingScanner extends AbstractStartingScan
         super(snapshotManager);
         this.startupMillis = startupMillis;
         this.startFromChangelog = changelogAsFollowup && changelogDecoupled;
+        // 早于 startupMillis 的 snapshot，如果不存在则返回 null.
         this.startingSnapshotId =
                 this.snapshotManager.earlierThanTimeMills(startupMillis, startFromChangelog);
     }

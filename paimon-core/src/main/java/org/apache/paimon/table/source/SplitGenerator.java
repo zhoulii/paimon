@@ -25,8 +25,10 @@ import java.util.List;
 /** Generate splits from {@link DataFileMeta}s. */
 public interface SplitGenerator {
 
+    // 分配给批读
     List<SplitGroup> splitForBatch(List<DataFileMeta> files);
 
+    // 分配给流读
     List<SplitGroup> splitForStreaming(List<DataFileMeta> files);
 
     /** Split group. */

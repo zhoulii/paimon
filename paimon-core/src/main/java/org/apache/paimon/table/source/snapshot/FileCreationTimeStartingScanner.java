@@ -26,8 +26,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * {@link StartingScanner} for the {@link CoreOptions.StartupMode#FROM_FILE_CREATION_TIME} startup
- * mode.
+ * 批读：读取最新 snapshot 中文件创建时间大于 startupMillis 的文件. 流读：读取最新 snapshot 中文件创建时间大于 startupMillis
+ * 的文件，然后增量读取.
+ *
+ * <p>{@link StartingScanner} for the {@link CoreOptions.StartupMode#FROM_FILE_CREATION_TIME}
+ * startup mode.
  */
 public class FileCreationTimeStartingScanner extends AbstractStartingScanner {
 

@@ -26,7 +26,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * {@link StartingScanner} for the {@link CoreOptions.StartupMode#LATEST} startup mode of a
+ * 从最新 snapshot 开始增量读取.
+ *
+ * <p>{@link StartingScanner} for the {@link CoreOptions.StartupMode#LATEST} startup mode of a
  * streaming read.
  */
 public class ContinuousLatestStartingScanner extends AbstractStartingScanner {

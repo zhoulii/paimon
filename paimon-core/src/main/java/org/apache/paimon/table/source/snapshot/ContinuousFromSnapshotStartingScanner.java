@@ -22,8 +22,10 @@ import org.apache.paimon.CoreOptions;
 import org.apache.paimon.utils.SnapshotManager;
 
 /**
- * {@link StartingScanner} for the {@link CoreOptions.StartupMode#FROM_SNAPSHOT} startup mode of a
- * streaming read.
+ * 从某个 snapshot 开始增量读取.
+ *
+ * <p>{@link StartingScanner} for the {@link CoreOptions.StartupMode#FROM_SNAPSHOT} startup mode of
+ * a streaming read.
  */
 public class ContinuousFromSnapshotStartingScanner extends AbstractStartingScanner {
 

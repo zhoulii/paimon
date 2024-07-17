@@ -25,7 +25,11 @@ import javax.annotation.Nullable;
 
 import java.util.List;
 
-/** Helper class for the first planning of {@link TableScan}. */
+/**
+ * 工具类接口，用于 TableScan 的第一次 Plan. 由 org.apache.paimon.CoreOptions.StartupMode 决定其行为.
+ *
+ * <p>Helper class for the first planning of {@link TableScan}.
+ */
 public interface StartingScanner {
 
     StartingContext startingContext();
@@ -35,9 +39,14 @@ public interface StartingScanner {
     /** Scan result of {@link #scan}. */
     interface Result {}
 
-    /** Currently, there is no snapshot, need to wait for the snapshot to be generated. */
+    /**
+     * 表示还没有 snapshot 生成.
+     *
+     * <p>Currently, there is no snapshot, need to wait for the snapshot to be generated.
+     */
     class NoSnapshot implements Result {}
 
+    // 从 SnapshotReader.Plan 直接构建 ScannedResult.
     static ScannedResult fromPlan(SnapshotReader.Plan plan) {
         return new ScannedResult(plan);
     }

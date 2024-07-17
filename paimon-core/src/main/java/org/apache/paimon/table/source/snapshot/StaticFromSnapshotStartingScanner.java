@@ -28,7 +28,9 @@ import org.slf4j.LoggerFactory;
 import static org.apache.paimon.utils.Preconditions.checkArgument;
 
 /**
- * {@link StartingScanner} for the {@link CoreOptions.StartupMode#FROM_SNAPSHOT} or {@link
+ * 批读：读取某个 snapshot.
+ *
+ * <p>{@link StartingScanner} for the {@link CoreOptions.StartupMode#FROM_SNAPSHOT} or {@link
  * CoreOptions.StartupMode#FROM_SNAPSHOT_FULL} startup mode of a batch read.
  */
 public class StaticFromSnapshotStartingScanner extends AbstractStartingScanner {

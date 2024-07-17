@@ -28,7 +28,12 @@ import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 
-/** {@link StartingScanner} for the {@link CoreOptions#SCAN_WATERMARK} of a batch read. */
+/**
+ * {@link CoreOptions.StartupMode#FROM_SNAPSHOT} & {@link CoreOptions#SCAN_WATERMARK} 配合使用.
+ * 流读：找到第一个大于等于 watermark 的 snapshot，增量读取. 批读：找到第一个大于等于 watermark 的 snapshot，全量读取.
+ *
+ * <p>{@link StartingScanner} for the {@link CoreOptions#SCAN_WATERMARK} of a batch read.
+ */
 public class StaticFromWatermarkStartingScanner extends AbstractStartingScanner {
 
     private static final Logger LOG =
