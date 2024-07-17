@@ -24,7 +24,11 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-/** Scanning plan containing snapshot ID and input splits. */
+/**
+ * TableScan.Plan 的实现类，可从 StartingScanner.Result 构建.
+ *
+ * <p>Scanning plan containing snapshot ID and input splits.
+ */
 public class DataFilePlan implements TableScan.Plan {
 
     private final List<DataSplit> splits;

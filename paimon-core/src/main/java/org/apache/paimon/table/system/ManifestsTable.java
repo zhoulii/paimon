@@ -118,6 +118,7 @@ public class ManifestsTable implements ReadonlyTable {
 
         @Override
         protected Plan innerPlan() {
+            // 返回要读取的 Split.
             return () -> Collections.singletonList(new ManifestsSplit());
         }
     }

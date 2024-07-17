@@ -25,7 +25,11 @@ import org.apache.paimon.table.Table;
 import java.util.List;
 
 /**
- * A scan of {@link Table} to generate {@link Split} splits.
+ * Scan 需要读取的文件，结果是 TableScan.Plan，封装 Split.
+ *
+ * <p>生成 plan 的关系：FileStoreScan -> FileStoreScan.Plan -> SnapshotReader.Plan -> TableScan.Plan.
+ *
+ * <p>A scan of {@link Table} to generate {@link Split} splits.
  *
  * @since 0.4.0
  */
@@ -39,7 +43,9 @@ public interface TableScan {
     List<BinaryRow> listPartitions();
 
     /**
-     * Plan of scan.
+     * 获取要读取的 Split.
+     *
+     * <p>Plan of scan.
      *
      * @since 0.4.0
      */

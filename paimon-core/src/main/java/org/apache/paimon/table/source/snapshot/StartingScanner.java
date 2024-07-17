@@ -42,7 +42,11 @@ public interface StartingScanner {
         return new ScannedResult(plan);
     }
 
-    /** Result with scanned snapshot. Next snapshot should be the current snapshot plus 1. */
+    /**
+     * Scan snapshot 的结果，包含 plan、splits、watermark、snapshot id，可以看成是对 SnapshotReader.Plan 的一个简单封装.
+     *
+     * <p>Result with scanned snapshot. Next snapshot should be the current snapshot plus 1.
+     */
     class ScannedResult implements Result {
 
         private final SnapshotReader.Plan plan;
@@ -70,7 +74,9 @@ public interface StartingScanner {
     }
 
     /**
-     * Return the next snapshot for followup scanning. The current snapshot is not scanned (even
+     * 下一次需要扫描的 snapshot，这个 snapshot 可能现在并不存在.
+     *
+     * <p>Return the next snapshot for followup scanning. The current snapshot is not scanned (even
      * doesn't exist), so there are no splits.
      */
     class NextSnapshot implements Result {

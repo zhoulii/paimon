@@ -22,7 +22,11 @@ import java.io.Serializable;
 import java.util.Map;
 import java.util.Objects;
 
-/** Pair contains left and right. */
+/**
+ * 工具类，相当于 Tuple2.
+ *
+ * <p>Pair contains left and right.
+ */
 public final class Pair<L, R> implements Map.Entry<L, R>, Serializable {
 
     private static final long serialVersionUID = 1L;

@@ -24,7 +24,11 @@ import javax.annotation.Nullable;
 
 import java.util.List;
 
-/** An implementation of {@link SnapshotReader.Plan}. */
+/**
+ * TableScan.Plan 的实现类. 基于 org.apache.paimon.operation.FileStoreScan.Plan 构建.
+ *
+ * <p>An implementation of {@link SnapshotReader.Plan}.
+ */
 public class PlanImpl implements SnapshotReader.Plan {
 
     private final Long watermark;

@@ -89,7 +89,13 @@ public interface FileStoreScan {
                 .collect(Collectors.toList());
     }
 
-    /** Result plan of this scan. */
+    /**
+     * 最基础的 Plan，结果是 ManifestEntry 集合.
+     *
+     * <p>org.apache.paimon.table.source.PlanImpl 会基于这个 Plan 来构建.
+     *
+     * <p>Result plan of this scan.
+     */
     interface Plan {
 
         @Nullable

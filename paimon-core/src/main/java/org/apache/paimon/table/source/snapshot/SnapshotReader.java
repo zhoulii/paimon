@@ -88,7 +88,9 @@ public interface SnapshotReader {
         Long watermark();
 
         /**
-         * Snapshot id of this plan, return null if the table is empty or the manifest list is
+         * 如果是空表或者指定了 manifest list，返回空.
+         *
+         * <p>Snapshot id of this plan, return null if the table is empty or the manifest list is
          * specified.
          */
         @Nullable

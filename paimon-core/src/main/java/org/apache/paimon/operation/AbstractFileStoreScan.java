@@ -225,6 +225,7 @@ public abstract class AbstractFileStoreScan implements FileStoreScan {
             @Nullable
             @Override
             public Long watermark() {
+                // Plan 的 watermark 就是 Snapshot 的 watermark
                 return readSnapshot == null ? null : readSnapshot.watermark();
             }
 
