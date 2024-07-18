@@ -24,7 +24,11 @@ import org.apache.paimon.io.DataOutputView;
 import java.io.IOException;
 import java.util.Objects;
 
-/** Index file for data file. */
+/**
+ * 表示数据文件的索引文件，在 org.apache.paimon.table.source.DataSplit#indexFiles() 使用，用于简单封装索引路径.
+ *
+ * <p>Index file for data file.
+ */
 public class IndexFile {
 
     private final String path;

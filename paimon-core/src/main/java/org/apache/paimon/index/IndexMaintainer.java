@@ -24,7 +24,11 @@ import javax.annotation.Nullable;
 
 import java.util.List;
 
-/** Maintainer to maintain index. */
+/**
+ * 用于维护一个内存中的 bucket 索引.
+ *
+ * <p>Maintainer to maintain index.
+ */
 public interface IndexMaintainer<T> {
 
     void notifyNewRecord(T record);

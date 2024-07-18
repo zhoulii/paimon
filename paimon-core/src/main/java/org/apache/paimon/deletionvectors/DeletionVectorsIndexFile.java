@@ -35,7 +35,11 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.zip.CRC32;
 
-/** DeletionVectors index file. */
+/**
+ * deletion vector 索引文件，一个 bucket 对应一个索引文件.
+ *
+ * <p>DeletionVectors index file.
+ */
 public class DeletionVectorsIndexFile extends IndexFile {
 
     public static final String DELETION_VECTORS_INDEX = "DELETION_VECTORS";
@@ -46,14 +50,18 @@ public class DeletionVectorsIndexFile extends IndexFile {
     }
 
     /**
-     * Reads all deletion vectors from a specified file.
+     * deletionVectorRanges 保存在 IndexManifestEntry 中. deletionVectorRanges 是一个有序的 map，key
+     * 是一个数据文件名称，value 是对应的 DeletionVector 在文件中的的起始位置和大小.
+     *
+     * <p>Reads all deletion vectors from a specified file.
      *
      * @param fileName The name of the file from which to read the deletion vectors.
      * @param deletionVectorRanges A map where the key represents which file the DeletionVector
      *     belongs to and the value is a Pair object specifying the range (start position and size)
      *     within the file where the deletion vector data is located.
      * @return A map where the key represents which file the DeletionVector belongs to, and the
-     *     value is the corresponding DeletionVector object.
+     *     value is the corresponding DeletionVector object. 返回值中，key 是数据文件名称，value 是对应的
+     *     DeletionVector.
      * @throws UncheckedIOException If an I/O error occurs while reading from the file.
      */
     public Map<String, DeletionVector> readAllDeletionVectors(
@@ -81,7 +89,9 @@ public class DeletionVectorsIndexFile extends IndexFile {
     }
 
     /**
-     * Reads a single deletion vector from the specified file.
+     * 读取某个文件的 deletion vector.
+     *
+     * <p>Reads a single deletion vector from the specified file.
      *
      * @param fileName The name of the file from which to read the deletion vector.
      * @param deletionVectorRange A Pair specifying the range (start position and size) within the
@@ -108,7 +118,9 @@ public class DeletionVectorsIndexFile extends IndexFile {
     }
 
     /**
-     * Write deletion vectors to a new file, the format of this file can be referenced at: <a
+     * 将 deletion vectors 写入到索引文件.
+     *
+     * <p>Write deletion vectors to a new file, the format of this file can be referenced at: <a
      * href="https://cwiki.apache.org/confluence/x/Tws4EQ">PIP-16</a>.
      *
      * @param input A map where the key represents which file the DeletionVector belongs to, and the
@@ -127,13 +139,17 @@ public class DeletionVectorsIndexFile extends IndexFile {
         Path path = pathFactory.newPath();
         try (DataOutputStream dataOutputStream =
                 new DataOutputStream(fileIO.newOutputStream(path, true))) {
+            // 先写版本号
             dataOutputStream.writeByte(VERSION_ID_V1);
             for (Map.Entry<String, DeletionVector> entry : input.entrySet()) {
                 String key = entry.getKey();
                 byte[] valueBytes = entry.getValue().serializeToBytes();
                 deletionVectorRanges.put(key, Pair.of(dataOutputStream.size(), valueBytes.length));
+                // 写入 deletion vector 长度
                 dataOutputStream.writeInt(valueBytes.length);
+                // 写入 deletion vector
                 dataOutputStream.write(valueBytes);
+                // 写入 checksum
                 dataOutputStream.writeInt(calculateChecksum(valueBytes));
             }
         } catch (IOException e) {
@@ -144,6 +160,7 @@ public class DeletionVectorsIndexFile extends IndexFile {
     }
 
     private void checkVersion(InputStream in) throws IOException {
+        // 检查版本号.
         int version = in.read();
         if (version != VERSION_ID_V1) {
             throw new RuntimeException(
@@ -155,9 +172,10 @@ public class DeletionVectorsIndexFile extends IndexFile {
     }
 
     private DeletionVector readDeletionVector(DataInputStream inputStream, int size) {
+        // 读取 deletion vector：size + value + checksum.
         try {
             // check size
-            int actualSize = inputStream.readInt();
+            int actualSize = inputStream.readInt(); // deletion vector 的实际长度.
             if (actualSize != size) {
                 throw new RuntimeException(
                         "Size not match, actual size: " + actualSize + ", expert size: " + size);
@@ -165,9 +183,9 @@ public class DeletionVectorsIndexFile extends IndexFile {
 
             // read DeletionVector bytes
             byte[] bytes = new byte[size];
-            inputStream.readFully(bytes);
+            inputStream.readFully(bytes); // 读取 deletion vector
 
-            // check checksum
+            // check checksum 数据校验.
             int checkSum = calculateChecksum(bytes);
             int actualCheckSum = inputStream.readInt();
             if (actualCheckSum != checkSum) {

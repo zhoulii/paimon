@@ -29,7 +29,11 @@ import org.apache.paimon.utils.VersionedObjectSerializer;
 
 import java.util.LinkedHashMap;
 
-/** A {@link VersionedObjectSerializer} for {@link IndexFileMeta}. */
+/**
+ * 用于序列化 IndexFileMeta.
+ *
+ * <p>A {@link VersionedObjectSerializer} for {@link IndexFileMeta}.
+ */
 public class IndexFileMetaSerializer extends ObjectSerializer<IndexFileMeta> {
 
     public IndexFileMetaSerializer() {
@@ -60,6 +64,7 @@ public class IndexFileMetaSerializer extends ObjectSerializer<IndexFileMeta> {
 
     public static InternalArray dvRangesToRowArrayData(
             LinkedHashMap<String, Pair<Integer, Integer>> dvRanges) {
+        // 将 deletion vector range 转换为 GenericArray.
         return new GenericArray(
                 dvRanges.entrySet().stream()
                         .map(
@@ -73,6 +78,7 @@ public class IndexFileMetaSerializer extends ObjectSerializer<IndexFileMeta> {
 
     public static LinkedHashMap<String, Pair<Integer, Integer>> rowArrayDataToDvRanges(
             InternalArray arrayData) {
+        // 将 GenericArray 转换为 deletion vector range.
         LinkedHashMap<String, Pair<Integer, Integer>> dvRanges =
                 new LinkedHashMap<>(arrayData.size());
         for (int i = 0; i < arrayData.size(); i++) {

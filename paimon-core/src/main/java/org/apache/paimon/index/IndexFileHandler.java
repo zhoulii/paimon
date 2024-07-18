@@ -44,7 +44,11 @@ import java.util.Set;
 import static org.apache.paimon.deletionvectors.DeletionVectorsIndexFile.DELETION_VECTORS_INDEX;
 import static org.apache.paimon.index.HashIndexFile.HASH_INDEX;
 
-/** Handle index files. */
+/**
+ * 用于与 IndexFile 交互.
+ *
+ * <p>Handle index files.
+ */
 public class IndexFileHandler {
 
     private final SnapshotManager snapshotManager;
@@ -75,6 +79,7 @@ public class IndexFileHandler {
                 result.add(file);
             }
         }
+        // 每个 bucket 对应一个 index file，比如 hash index 只能有一个，deletion vectors index 只能有一个.
         if (result.size() > 1) {
             throw new IllegalArgumentException(
                     "Find multiple index files for one bucket: " + result);
@@ -92,6 +97,7 @@ public class IndexFileHandler {
     }
 
     public List<IndexManifestEntry> scan(long snapshotId, String indexType, BinaryRow partition) {
+        // 读取符合条件的所有 IndexManifestEntry，IndexManifestEntry 表示新增或删除一个 IndexFile.
         Snapshot snapshot = snapshotManager.snapshot(snapshotId);
         String indexManifest = snapshot.indexManifest();
         if (indexManifest == null) {
@@ -112,6 +118,7 @@ public class IndexFileHandler {
 
     public Map<Pair<BinaryRow, Integer>, List<IndexFileMeta>> scanPartitions(
             long snapshotId, String indexType, Set<BinaryRow> partitions) {
+        // 获取多个 partition 下的 index 文件.
         Map<Pair<BinaryRow, Integer>, List<IndexFileMeta>> result = new HashMap<>();
         Snapshot snapshot = snapshotManager.snapshot(snapshotId);
         String indexManifest = snapshot.indexManifest();
@@ -141,6 +148,7 @@ public class IndexFileHandler {
     }
 
     public IntIterator readHashIndex(IndexFileMeta file) {
+        // 读取 hash index 存储的 hash 值.
         if (!file.indexType().equals(HASH_INDEX)) {
             throw new IllegalArgumentException("Input file is not hash index: " + file.indexType());
         }
@@ -157,6 +165,7 @@ public class IndexFileHandler {
     }
 
     public IndexFileMeta writeHashIndex(int size, IntIterator iterator) {
+        // 写入 hash index.
         String file;
         try {
             file = hashIndex.write(iterator);
@@ -167,31 +176,38 @@ public class IndexFileHandler {
     }
 
     public boolean existsManifest(String indexManifest) {
+        // 判断 index manifest 是否存在.
         return indexManifestFile.exists(indexManifest);
     }
 
     public List<IndexManifestEntry> readManifest(String indexManifest) {
+        // 读取 IndexManifestFile，抛出 RuntimeException.
         return indexManifestFile.read(indexManifest);
     }
 
     public List<IndexManifestEntry> readManifestWithIOException(String indexManifest)
             throws IOException {
+        // 读取 IndexManifestFile，抛出 IOException.
         return indexManifestFile.readWithIOException(indexManifest);
     }
 
     public boolean existsIndexFile(IndexManifestEntry file) {
+        // 判断 IndexFile 是否存在.
         return hashIndex.exists(file.indexFile().fileName());
     }
 
     public void deleteIndexFile(IndexManifestEntry file) {
+        // 删除 IndexFile.
         hashIndex.delete(file.indexFile().fileName());
     }
 
     public void deleteManifest(String indexManifest) {
+        // 删除 IndexManifestFile.
         indexManifestFile.delete(indexManifest);
     }
 
     public Map<String, DeletionVector> readAllDeletionVectors(IndexFileMeta fileMeta) {
+        // 读取 deletion vectors.
         if (!fileMeta.indexType().equals(DELETION_VECTORS_INDEX)) {
             throw new IllegalArgumentException(
                     "Input file is not deletion vectors index " + fileMeta.indexType());
@@ -205,6 +221,7 @@ public class IndexFileHandler {
     }
 
     public Optional<DeletionVector> readDeletionVector(IndexFileMeta fileMeta, String fileName) {
+        // 读取某个文件的 deletion vector.
         if (!fileMeta.indexType().equals(DELETION_VECTORS_INDEX)) {
             throw new IllegalArgumentException(
                     "Input file is not deletion vectors index " + fileMeta.indexType());
@@ -219,8 +236,10 @@ public class IndexFileHandler {
     }
 
     public IndexFileMeta writeDeletionVectorsIndex(Map<String, DeletionVector> deletionVectors) {
+        // 写出 deletion vector.
         Pair<String, LinkedHashMap<String, Pair<Integer, Integer>>> pair =
                 deletionVectorsIndex.write(deletionVectors);
+        // IndexFileMeta 会保存在 ManifestEntry 中.
         return new IndexFileMeta(
                 DELETION_VECTORS_INDEX,
                 pair.getLeft(),

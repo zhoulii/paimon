@@ -28,7 +28,13 @@ import java.io.IOException;
 import static org.apache.paimon.utils.IntFileUtils.readInts;
 import static org.apache.paimon.utils.IntFileUtils.writeInts;
 
-/** Hash index file contains ints. */
+/**
+ * Hash 索引文件，存储一系列 INT 类型 HASH 值，使用时，是将其转换为 IntHashSet，然后判断数据是否存在.
+ *
+ * <p>每个 bucket 包含一个 HashIndexFile 文件，用于在 dynamic bucket 模式下记录 bucket 中的值.
+ *
+ * <p>Hash index file contains ints.
+ */
 public class HashIndexFile extends IndexFile {
 
     public static final String HASH_INDEX = "HASH";

@@ -18,7 +18,11 @@
 
 package org.apache.paimon.manifest;
 
-/** Kind of a file. */
+/**
+ * 表示删除一个文件还是添加一个文件.
+ *
+ * <p>Kind of a file.
+ */
 public enum FileKind {
     ADD((byte) 0),
 

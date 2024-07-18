@@ -22,7 +22,12 @@ import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 
 import java.io.EOFException;
 
-/** A hash set for ints. */
+/**
+ * 基于 IntOpenHashSet 实现，IntOpenHashSet
+ * 是专门针对整数类型进行优化的哈希集合实现。它使用了基本的整数数组来存储元素，因此在存储大量整数时，相比于通用的集合实现，可以实现更高的性能和更低的内存占用.
+ *
+ * <p>A hash set for ints.
+ */
 public class IntHashSet {
 
     private final IntOpenHashSet set;
@@ -32,6 +37,7 @@ public class IntHashSet {
     }
 
     public IntHashSet(int expected) {
+        // 预期元素数量
         this.set = new IntOpenHashSet(expected);
     }
 

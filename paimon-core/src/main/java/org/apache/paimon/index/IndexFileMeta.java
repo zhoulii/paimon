@@ -35,17 +35,25 @@ import java.util.Objects;
 
 import static org.apache.paimon.utils.SerializationUtils.newStringType;
 
-/** Metadata of index file. */
+/**
+ * index 的元数据，不是一个文件.
+ *
+ * <p>Metadata of index file.
+ */
 public class IndexFileMeta {
 
+    // 现在支持两类 index：DELETION_VECTORS_INDEX & HASH_INDEX.
     private final String indexType;
+    // 索引文件名称.
     private final String fileName;
     private final long fileSize;
     private final long rowCount;
 
     /**
-     * Metadata only used by {@link DeletionVectorsIndexFile}, use LinkedHashMap to ensure that the
-     * order of DeletionVectorRanges and the written DeletionVectors is consistent.
+     * 只有 DeletionVectorsIndexFile 会使用.
+     *
+     * <p>Metadata only used by {@link DeletionVectorsIndexFile}, use LinkedHashMap to ensure that
+     * the order of DeletionVectorRanges and the written DeletionVectors is consistent.
      */
     private final @Nullable LinkedHashMap<String, Pair<Integer, Integer>> deletionVectorsRanges;
 
@@ -125,6 +133,7 @@ public class IndexFileMeta {
     }
 
     public static RowType schema() {
+        // 序列化时，转化为 GenericRow 时使用.
         List<DataField> fields = new ArrayList<>();
         fields.add(new DataField(0, "_INDEX_TYPE", newStringType(false)));
         fields.add(new DataField(1, "_FILE_NAME", newStringType(false)));

@@ -24,7 +24,11 @@ import org.apache.paimon.utils.PathFactory;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 
-/** Base index file. */
+/**
+ * 索引文件基类.
+ *
+ * <p>Base index file.
+ */
 public abstract class IndexFile {
 
     protected final FileIO fileIO;

@@ -20,7 +20,11 @@ package org.apache.paimon.utils;
 
 import org.apache.paimon.fs.Path;
 
-/** Path factory to create a path. */
+/**
+ * 用于创建文件路径和根据文件名查找路径.
+ *
+ * <p>Path factory to create a path.
+ */
 public interface PathFactory {
 
     Path newPath();

@@ -34,7 +34,11 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
-/** An {@link IndexMaintainer} for dynamic bucket to maintain key hashcode in a bucket. */
+/**
+ * dynamic bucket 下用于判断某个 bucket-key 是否属于某个 bucket.
+ *
+ * <p>An {@link IndexMaintainer} for dynamic bucket to maintain key hashcode in a bucket.
+ */
 public class HashIndexMaintainer implements IndexMaintainer<KeyValue> {
 
     private final IndexFileHandler fileHandler;
@@ -63,6 +67,7 @@ public class HashIndexMaintainer implements IndexMaintainer<KeyValue> {
     }
 
     private void restore(IndexFileHandler fileHandler, IntHashSet hashcode, IndexFileMeta file) {
+        // 从 index file 中恢复文件 hash 值集合.
         try (IntIterator iterator = fileHandler.readHashIndex(file)) {
             while (true) {
                 try {
@@ -78,6 +83,7 @@ public class HashIndexMaintainer implements IndexMaintainer<KeyValue> {
 
     @Override
     public void notifyNewRecord(KeyValue record) {
+        // bucket 中添加一个新的 bucket-key.
         InternalRow key = record.key();
         if (!(key instanceof BinaryRow)) {
             throw new IllegalArgumentException("Unsupported key type: " + key.getClass());
@@ -90,6 +96,7 @@ public class HashIndexMaintainer implements IndexMaintainer<KeyValue> {
 
     @Override
     public List<IndexFileMeta> prepareCommit() {
+        // 如果索引有变化，则写出一个新的.
         if (modified) {
             IndexFileMeta entry =
                     fileHandler.writeHashIndex(hashcode.size(), hashcode.toIntIterator());

@@ -30,10 +30,12 @@ public interface IntIterator extends Closeable {
 
     int next() throws IOException;
 
+    // IntIterator 转换为 int[].
     static int[] toInts(IntIterator input) {
         return toIntList(input).stream().mapToInt(Integer::intValue).toArray();
     }
 
+    // IntIterator 转换为 List<Integer>.
     static List<Integer> toIntList(IntIterator input) {
         List<Integer> ints = new ArrayList<>();
         try (IntIterator iterator = input) {
@@ -50,6 +52,7 @@ public interface IntIterator extends Closeable {
         return ints;
     }
 
+    // 从 int[] 创建 IntIterator.
     static IntIterator create(int[] ints) {
         return new IntIterator() {
 

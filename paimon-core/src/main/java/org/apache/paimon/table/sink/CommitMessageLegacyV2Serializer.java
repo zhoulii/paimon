@@ -162,7 +162,11 @@ public class CommitMessageLegacyV2Serializer {
         }
     }
 
-    /** A legacy version serializer for {@link IndexFileMeta}. */
+    /**
+     * 不包含 deletion vector.
+     *
+     * <p>A legacy version serializer for {@link IndexFileMeta}.
+     */
     private static class IndexFileMetaLegacyV2Serializer extends ObjectSerializer<IndexFileMeta> {
 
         public IndexFileMetaLegacyV2Serializer() {

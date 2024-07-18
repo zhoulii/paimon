@@ -35,7 +35,11 @@ import static org.apache.paimon.utils.Preconditions.checkArgument;
 import static org.apache.paimon.utils.SerializationUtils.newBytesType;
 import static org.apache.paimon.utils.SerializationUtils.newStringType;
 
-/** Manifest entry for index file. */
+/**
+ * IndexManifestEntry 表示新增或删除一个 IndexFile.
+ *
+ * <p>Manifest entry for index file.
+ */
 public class IndexManifestEntry {
 
     private final FileKind kind;
@@ -52,6 +56,7 @@ public class IndexManifestEntry {
     }
 
     public IndexManifestEntry toDeleteEntry() {
+        // 转换为被删除的 IndexManifestEntry.
         checkArgument(kind == FileKind.ADD);
         return new IndexManifestEntry(FileKind.DELETE, partition, bucket, indexFile);
     }
@@ -95,6 +100,7 @@ public class IndexManifestEntry {
     }
 
     public Identifier identifier() {
+        // partition, bucket, indexType 对应的一个标识符.
         return new Identifier(partition, bucket, indexFile.indexType());
     }
 
