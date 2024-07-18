@@ -72,7 +72,9 @@ public class FileUtils {
     }
 
     /**
-     * List versioned files for the directory.
+     * 列出版本文件，versioned files 是指（prefix + num）.
+     *
+     * <p>List versioned files for the directory.
      *
      * @return version stream
      */
@@ -82,20 +84,24 @@ public class FileUtils {
     }
 
     /**
-     * List original versioned files for the directory.
+     * 列出目录下的版本文件，返回版本字符串.
+     *
+     * <p>List original versioned files for the directory.
      *
      * @return version stream
      */
     public static Stream<String> listOriginalVersionedFiles(FileIO fileIO, Path dir, String prefix)
             throws IOException {
         return listVersionedFileStatus(fileIO, dir, prefix)
-                .map(FileStatus::getPath)
-                .map(Path::getName)
-                .map(name -> name.substring(prefix.length()));
+                .map(FileStatus::getPath) // 获取文件路径
+                .map(Path::getName) // 获取文件名
+                .map(name -> name.substring(prefix.length())); // 取文件版本
     }
 
     /**
-     * List versioned file status for the directory.
+     * 列出目录下的版本文件，返回 FileStatus.
+     *
+     * <p>List versioned file status for the directory.
      *
      * @return file status stream
      */
@@ -105,6 +111,7 @@ public class FileUtils {
             return Stream.empty();
         }
 
+        // 列出所有文件 FileStatus
         FileStatus[] statuses = fileIO.listStatus(dir);
 
         if (statuses == null) {
@@ -114,6 +121,7 @@ public class FileUtils {
                             dir));
         }
 
+        // 根据前缀过滤
         return Arrays.stream(statuses)
                 .filter(status -> status.getPath().getName().startsWith(prefix));
     }

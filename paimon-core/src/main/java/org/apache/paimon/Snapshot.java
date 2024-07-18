@@ -44,7 +44,9 @@ import java.util.Map;
 import java.util.Objects;
 
 /**
- * This file is the entrance to all data committed at some specific time point.
+ * Snapshot 实体类.
+ *
+ * <p>This file is the entrance to all data committed at some specific time point.
  *
  * <p>Versioned change list:
  *
@@ -69,6 +71,7 @@ public class Snapshot {
 
     public static final long FIRST_SNAPSHOT_ID = 1;
 
+    // version of snapshot，为了向前兼容.
     public static final int TABLE_STORE_02_VERSION = 1;
     protected static final int CURRENT_VERSION = 3;
 
@@ -111,6 +114,7 @@ public class Snapshot {
     @JsonProperty(FIELD_DELTA_MANIFEST_LIST)
     protected final String deltaManifestList;
 
+    // 上一个 snapshot 到当前 snapshot 的所有 changelog.
     // a manifest list recording all changelog produced in this snapshot
     // null if no changelog is produced, or for paimon <= 0.2
     @JsonProperty(FIELD_CHANGELOG_MANIFEST_LIST)
@@ -352,8 +356,10 @@ public class Snapshot {
     }
 
     /**
-     * Return all {@link ManifestFileMeta} instances for either data or changelog manifests in this
-     * snapshot.
+     * 返回一个 ManifestList 对应的所有 ManifestFileMeta，同时包括数据和 changelog.
+     *
+     * <p>Return all {@link ManifestFileMeta} instances for either data or changelog manifests in
+     * this snapshot.
      *
      * @param manifestList a {@link ManifestList} instance used for reading files at snapshot.
      * @return a list of ManifestFileMeta.
@@ -366,7 +372,9 @@ public class Snapshot {
     }
 
     /**
-     * Return a {@link ManifestFileMeta} for each data manifest in this snapshot.
+     * 包含 baseManifestList 与 deltaManifestList 的ManifestFileMeta.
+     *
+     * <p>Return a {@link ManifestFileMeta} for each data manifest in this snapshot.
      *
      * @param manifestList a {@link ManifestList} instance used for reading files at snapshot.
      * @return a list of ManifestFileMeta.
@@ -379,7 +387,9 @@ public class Snapshot {
     }
 
     /**
-     * Return a {@link ManifestFileMeta} for each delta manifest in this snapshot.
+     * deltaManifestList 包含的 ManifestFileMeta.
+     *
+     * <p>Return a {@link ManifestFileMeta} for each delta manifest in this snapshot.
      *
      * @param manifestList a {@link ManifestList} instance used for reading files at snapshot.
      * @return a list of ManifestFileMeta.
@@ -389,7 +399,9 @@ public class Snapshot {
     }
 
     /**
-     * Return a {@link ManifestFileMeta} for each changelog manifest in this snapshot.
+     * changelogManifestList 对应的 ManifestFileMeta.
+     *
+     * <p>Return a {@link ManifestFileMeta} for each changelog manifest in this snapshot.
      *
      * @param manifestList a {@link ManifestList} instance used for reading files at snapshot.
      * @return a list of ManifestFileMeta.
@@ -413,10 +425,12 @@ public class Snapshot {
     }
 
     public static long recordCount(List<ManifestEntry> manifestEntries) {
+        // 所有文件的行数
         return manifestEntries.stream().mapToLong(manifest -> manifest.file().rowCount()).sum();
     }
 
     public static long recordCountAdd(List<ManifestEntry> manifestEntries) {
+        // 所有 add 文件行数
         return manifestEntries.stream()
                 .filter(manifestEntry -> FileKind.ADD.equals(manifestEntry.kind()))
                 .mapToLong(manifest -> manifest.file().rowCount())
@@ -424,6 +438,7 @@ public class Snapshot {
     }
 
     public static long recordCountDelete(List<ManifestEntry> manifestEntries) {
+        // 所有删除文件行数
         return manifestEntries.stream()
                 .filter(manifestEntry -> FileKind.DELETE.equals(manifestEntry.kind()))
                 .mapToLong(manifest -> manifest.file().rowCount())
@@ -440,6 +455,7 @@ public class Snapshot {
 
     public static Snapshot fromPath(FileIO fileIO, Path path) {
         try {
+            // 直接读取文件创建 snapshot
             String json = fileIO.readFileUtf8(path);
             return Snapshot.fromJson(json);
         } catch (IOException e) {
@@ -450,6 +466,7 @@ public class Snapshot {
     @Nullable
     public static Snapshot safelyFromPath(FileIO fileIO, Path path) throws IOException {
         try {
+            // 和 fromPath 的区别在于如果文件不存在，则返回 null
             String json = fileIO.readFileUtf8(path);
             return Snapshot.fromJson(json);
         } catch (FileNotFoundException e) {

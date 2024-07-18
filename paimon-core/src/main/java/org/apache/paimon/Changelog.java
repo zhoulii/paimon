@@ -32,7 +32,9 @@ import java.io.IOException;
 import java.util.Map;
 
 /**
- * The metadata of changelog. It generates from the snapshot file during expiration. So that the
+ * Changelog 元数据，主要是为了保存某个 Snapshot 对应的 changelogManifestList.
+ *
+ * <p>The metadata of changelog. It generates from the snapshot file during expiration. So that the
  * changelog of the table can outlive the snapshot's lifecycle. A table's changelog can come from
  * one source:
  * <li>The changelog file. Eg: from the changelog-producer = 'input'

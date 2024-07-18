@@ -76,6 +76,7 @@ public class BranchManager {
 
     /** Return the path string of a branch. */
     public static String getBranchPath(Path tablePath, String branchName) {
+        // 返回 branch 的根目录.
         return tablePath.toString() + "/branch/" + BRANCH_PREFIX + branchName;
     }
 

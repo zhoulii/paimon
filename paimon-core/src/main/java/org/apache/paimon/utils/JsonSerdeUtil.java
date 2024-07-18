@@ -57,6 +57,8 @@ public class JsonSerdeUtil {
 
     static {
         OBJECT_MAPPER_INSTANCE = new ObjectMapper();
+        // Module for custom serializers and deserializers
+        // Module 用于自定义序列化和反序列化器.
         OBJECT_MAPPER_INSTANCE.registerModule(createPaimonJacksonModule());
         OBJECT_MAPPER_INSTANCE.registerModule(new JavaTimeModule());
     }
@@ -132,6 +134,7 @@ public class JsonSerdeUtil {
 
     public static <T> T fromJson(String json, Class<T> clazz) {
         try {
+            // json 字符串转换为类对象
             return OBJECT_MAPPER_INSTANCE.reader().readValue(json, clazz);
         } catch (IOException e) {
             throw new UncheckedIOException(e);
@@ -140,6 +143,7 @@ public class JsonSerdeUtil {
 
     public static <T> String toJson(T t) {
         try {
+            // 生成美化的 JSON 字符串，方便查看
             return OBJECT_MAPPER_INSTANCE.writerWithDefaultPrettyPrinter().writeValueAsString(t);
         } catch (JsonProcessingException e) {
             throw new UncheckedIOException(e);
@@ -148,6 +152,7 @@ public class JsonSerdeUtil {
 
     public static <T> String toFlatJson(T t) {
         try {
+            // 生成紧凑的 JSON 字符串，方便传输、存储
             return OBJECT_MAPPER_INSTANCE.writer().writeValueAsString(t);
         } catch (JsonProcessingException e) {
             throw new UncheckedIOException(e);

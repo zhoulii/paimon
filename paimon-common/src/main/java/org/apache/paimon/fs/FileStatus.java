@@ -21,7 +21,10 @@ package org.apache.paimon.fs;
 import org.apache.paimon.annotation.Public;
 
 /**
- * Interface that represents the client side information for a file independent of the file system.
+ * 文件的元信息描述.
+ *
+ * <p>Interface that represents the client side information for a file independent of the file
+ * system.
  *
  * @since 0.4.0
  */

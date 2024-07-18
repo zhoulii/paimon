@@ -69,7 +69,11 @@ import java.util.Optional;
 
 import static org.apache.paimon.catalog.Catalog.SYSTEM_TABLE_SPLITTER;
 
-/** A {@link Table} for showing committing snapshots of table. */
+/**
+ * 系统表，读取 snapshot 信息.
+ *
+ * <p>A {@link Table} for showing committing snapshots of table.
+ */
 public class SnapshotsTable implements ReadonlyTable {
 
     private static final long serialVersionUID = 1L;
@@ -204,9 +208,11 @@ public class SnapshotsTable implements ReadonlyTable {
                 return this;
             }
 
+            // 在 predicate 中找打 snapshot_id 的过滤条件.
             LeafPredicate snapshotPred =
                     predicate.visit(LeafPredicateExtractor.INSTANCE).get("snapshot_id");
             if (snapshotPred != null) {
+                // 等于条件，边界值都设置为条件值
                 if (snapshotPred.function() instanceof Equal) {
                     optionalFilterSnapshotIdMin =
                             Optional.of((Long) snapshotPred.literals().get(0));
@@ -214,21 +220,25 @@ public class SnapshotsTable implements ReadonlyTable {
                             Optional.of((Long) snapshotPred.literals().get(0));
                 }
 
+                // 设置最小边界为条件值 + 1
                 if (snapshotPred.function() instanceof GreaterThan) {
                     optionalFilterSnapshotIdMin =
                             Optional.of((Long) snapshotPred.literals().get(0) + 1);
                 }
 
+                // 设置最小边界为条件值
                 if (snapshotPred.function() instanceof GreaterOrEqual) {
                     optionalFilterSnapshotIdMin =
                             Optional.of((Long) snapshotPred.literals().get(0));
                 }
 
+                // 设置最大边界为条件值 - 1
                 if (snapshotPred.function() instanceof LessThan) {
                     optionalFilterSnapshotIdMax =
                             Optional.of((Long) snapshotPred.literals().get(0) - 1);
                 }
 
+                // 设置最大边界值
                 if (snapshotPred.function() instanceof LessOrEqual) {
                     optionalFilterSnapshotIdMax =
                             Optional.of((Long) snapshotPred.literals().get(0));
@@ -260,8 +270,10 @@ public class SnapshotsTable implements ReadonlyTable {
                     snapshotManager.snapshotsWithinRange(
                             optionalFilterSnapshotIdMax, optionalFilterSnapshotIdMin);
 
+            // 将 Iterator<Snapshot> 转换为 Iterator<InternalRow>
             Iterator<InternalRow> rows = Iterators.transform(snapshots, this::toRow);
             if (projection != null) {
+                // 筛选字段
                 rows =
                         Iterators.transform(
                                 rows, row -> ProjectedRow.from(projection).replaceRow(row));
