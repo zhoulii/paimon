@@ -110,7 +110,11 @@ public class CommitMessageLegacyV2Serializer {
         return new RowType(fields);
     }
 
-    /** A legacy version serializer for {@link DataFileMeta}. */
+    /**
+     * 和 DataFileMetaSafeSerializer 以及 DataFileMetaSerializer 的区别在于 schema 不同.
+     *
+     * <p>A legacy version serializer for {@link DataFileMeta}.
+     */
     private static class DataFileMetaLegacyV2Serializer extends ObjectSerializer<DataFileMeta> {
 
         private static final long serialVersionUID = 1L;

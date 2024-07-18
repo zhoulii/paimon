@@ -40,6 +40,7 @@ public class DataFileMetaSerializer extends ObjectSerializer<DataFileMeta> {
 
     @Override
     public InternalRow toRow(DataFileMeta meta) {
+        // 如何将 DataFileMeta 转换为 Row，用于序列化
         return GenericRow.of(
                 BinaryString.fromString(meta.fileName()),
                 meta.fileSize(),
@@ -60,6 +61,7 @@ public class DataFileMetaSerializer extends ObjectSerializer<DataFileMeta> {
 
     @Override
     public DataFileMeta fromRow(InternalRow row) {
+        // 如何将 Row 转换为 DataFileMeta，用于反序列化
         return new DataFileMeta(
                 row.getString(0).toString(),
                 row.getLong(1),

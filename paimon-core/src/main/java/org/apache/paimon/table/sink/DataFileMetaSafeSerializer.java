@@ -38,7 +38,11 @@ import static org.apache.paimon.utils.InternalRowUtils.toStringArrayData;
 import static org.apache.paimon.utils.SerializationUtils.deserializeBinaryRow;
 import static org.apache.paimon.utils.SerializationUtils.serializeBinaryRow;
 
-/** Serializer for {@link DataFileMeta} with safe deserializer. */
+/**
+ * 和 DataFileMetaSerializer 相比更安全，区别在于 deserialize 方法.
+ *
+ * <p>Serializer for {@link DataFileMeta} with safe deserializer.
+ */
 public class DataFileMetaSafeSerializer implements Serializable {
 
     private static final long serialVersionUID = 1L;
@@ -88,6 +92,9 @@ public class DataFileMetaSafeSerializer implements Serializable {
     }
 
     private DataFileMeta deserialize(DataInputView in) throws IOException {
+        // DataFileMetaSerializer 需要先将 DataInputView 反序列化为 InternalRow
+        // 而此处直接基于 bytes 创建 SafeBinaryRow
+        // 后续获取字段都是基于这个 JAVA 字节数组来做.
         byte[] bytes = new byte[in.readInt()];
         in.readFully(bytes);
         SafeBinaryRow row = new SafeBinaryRow(rowSerializer.getArity(), bytes, 0);

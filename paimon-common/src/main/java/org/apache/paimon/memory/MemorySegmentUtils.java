@@ -492,6 +492,8 @@ public class MemorySegmentUtils {
     /**
      * 给定位下标，计算字节下标.
      *
+     * <p>如位下标为 16，字节下标则为 2.
+     *
      * <p>Given a bit index, return the byte index containing it.
      *
      * @param bitIndex the bit index.

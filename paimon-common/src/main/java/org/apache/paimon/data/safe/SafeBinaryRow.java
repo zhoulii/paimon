@@ -34,7 +34,29 @@ import static org.apache.paimon.memory.MemorySegmentUtils.BIT_BYTE_INDEX_MASK;
 import static org.apache.paimon.memory.MemorySegmentUtils.byteIndex;
 import static org.apache.paimon.utils.Preconditions.checkArgument;
 
-/** A {@link BinaryRow} which is safe avoid core dump. */
+/**
+ * SafeBinaryRow 的实现.
+ *
+ * <p>1.内存安全：纯 Java 实现，不涉及非托管内存，因此避免了 core dump 的风险. 2.边界检查：依赖于 Java 的数组边界检查机制，天然避免了越界访问.
+ * 3.简洁性：纯数组操作，逻辑简单，容易理解和维护，减少了复杂内存管理带来的潜在错误. 相比之下，BinaryRow 使用 MemorySegment
+ * 提升了性能，但需要非常小心地处理内存管理和边界检查，否则容易引发低级内存访问错误。因此，SafeBinaryRow 被认为是更安全的实现，能够有效地防止段错误.
+ *
+ * <p>Core dump 是操作系统在检测到程序异常终止时生成的一种文件，它包含程序的内存映像（memory
+ * image）以及程序运行时的状态信息。这些信息通常包括寄存器值、堆栈和堆内存的内容、当前执行指令的位置及其他上下文环境。通过分析 core dump 文件，开发人员可以诊断引起程序崩溃的问题。
+ *
+ * <p>什么情况下会产生 Core Dump？ Core dump 通常在以下情况下产生：
+ *
+ * <p>- 程序试图访问非法内存地址（例如，null 指针引用）。 - 程序发生段错误（segmentation fault）。 - 程序收到某些信号，如 SIGSEGV、SIGBUS 或
+ * SIGABRT。 - 程序执行了非法的操作码。 - 其他未处理的致命错误。
+ *
+ * <p>为什么 Core Dump 重要？
+ *
+ * <p>Core dump 文件对调试和诊断程序问题非常有用，原因如下： - 回溯调用堆栈：可以查看程序在崩溃前所执行的函数调用链。 -
+ * 内存状态：查看程序内存的具体内容，帮助识别内存溢出、非法访问等问题。 - 寄存器值：可以检查 CPU 寄存器的状态，如程序计数器、堆栈指针等。 -
+ * 程序执行位置：了解程序崩溃时的具体代码位置，帮助定位错误代码。
+ *
+ * <p>A {@link BinaryRow} which is safe avoid core dump.
+ */
 public final class SafeBinaryRow implements InternalRow {
 
     private final int arity;

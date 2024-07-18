@@ -48,9 +48,14 @@ import static org.apache.paimon.utils.Preconditions.checkArgument;
 import static org.apache.paimon.utils.SerializationUtils.newBytesType;
 import static org.apache.paimon.utils.SerializationUtils.newStringType;
 
-/** Metadata of a data file. */
+/**
+ * data file 的元数据文件.
+ *
+ * <p>Metadata of a data file.
+ */
 public class DataFileMeta {
 
+    // 用于 append only table.
     // Append only data files don't have any key columns and meaningful level value. it will use
     // the following dummy values.
     public static final BinaryTableStats EMPTY_KEY_STATS =
@@ -75,6 +80,7 @@ public class DataFileMeta {
     private final long schemaId;
     private final int level;
 
+    // data file 的相关文件，如索引文件
     private final List<String> extraFiles;
     private final Timestamp creationTime;
 
@@ -84,6 +90,7 @@ public class DataFileMeta {
     // We have to keep the compatibility.
     private final @Nullable Long deleteRowCount;
 
+    // 索引文件很小的话，直接存储在 data file meta 中.
     // file index filter bytes, if it is small, store in data file meta
     private final @Nullable byte[] embeddedIndex;
 
@@ -261,7 +268,9 @@ public class DataFileMeta {
     }
 
     /**
-     * Usage:
+     * 0.2 之前，input changelog producer 产生的 changelog file 也由 extraFiles 记录.
+     *
+     * <p>Usage:
      *
      * <ul>
      *   <li>Paimon 0.2
@@ -280,6 +289,7 @@ public class DataFileMeta {
     }
 
     public long creationTimeEpochMillis() {
+        // timestamp 转换为 long 型时间戳
         return creationTime
                 .toLocalDateTime()
                 .atZone(ZoneId.systemDefault())
@@ -288,6 +298,7 @@ public class DataFileMeta {
     }
 
     public String fileFormat() {
+        // 文件格式
         String[] split = fileName.split("\\.");
         if (split.length == 1) {
             throw new RuntimeException("Can't find format from file: " + fileName());
@@ -296,6 +307,7 @@ public class DataFileMeta {
     }
 
     public DataFileMeta upgrade(int newLevel) {
+        // 升级到下个 level.
         checkArgument(newLevel > this.level);
         return new DataFileMeta(
                 fileName,
@@ -316,6 +328,7 @@ public class DataFileMeta {
     }
 
     public List<Path> collectFiles(DataFilePathFactory pathFactory) {
+        // 汇集 data file 以及其关联的 extra files.
         List<Path> paths = new ArrayList<>();
         paths.add(pathFactory.toPath(fileName));
         extraFiles.forEach(f -> paths.add(pathFactory.toPath(f)));
@@ -432,6 +445,7 @@ public class DataFileMeta {
     }
 
     public static long getMaxSequenceNumber(List<DataFileMeta> fileMetas) {
+        // 获取一批 data file 的最大 sequence number.
         return fileMetas.stream()
                 .map(DataFileMeta::maxSequenceNumber)
                 .max(Long::compare)

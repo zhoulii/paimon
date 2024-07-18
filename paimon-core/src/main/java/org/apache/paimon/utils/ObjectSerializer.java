@@ -35,7 +35,11 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
-/** A serializer to serialize object by {@link InternalRowSerializer}. */
+/**
+ * 使用 InternalRowSerializer 实现对象序列化.
+ *
+ * <p>A serializer to serialize object by {@link InternalRowSerializer}.
+ */
 public abstract class ObjectSerializer<T> implements Serializable {
 
     private static final long serialVersionUID = 1L;
@@ -56,7 +60,9 @@ public abstract class ObjectSerializer<T> implements Serializable {
     }
 
     /**
-     * Serializes the given record to the given target output view.
+     * 序列化一个对象，先将其转换为 row，再执行序列化.
+     *
+     * <p>Serializes the given record to the given target output view.
      *
      * @param record The record to serialize.
      * @param target The output view to write the serialized data to.
@@ -69,7 +75,9 @@ public abstract class ObjectSerializer<T> implements Serializable {
     }
 
     /**
-     * De-serializes a record from the given source input view.
+     * 反序列化为 row，再转换为指定类型对象.
+     *
+     * <p>De-serializes a record from the given source input view.
      *
      * @param source The input view from which to read the data.
      * @return The deserialized element.
@@ -81,7 +89,11 @@ public abstract class ObjectSerializer<T> implements Serializable {
         return fromRow(rowSerializer.deserialize(source));
     }
 
-    /** Serializes the given record list to the given target output view. */
+    /**
+     * 序列化一个 list.
+     *
+     * <p>Serializes the given record list to the given target output view.
+     */
     public final void serializeList(List<T> records, DataOutputView target) throws IOException {
         target.writeInt(records.size());
         for (T t : records) {
@@ -90,6 +102,7 @@ public abstract class ObjectSerializer<T> implements Serializable {
     }
 
     public final byte[] serializeList(List<T> records) throws IOException {
+        // 序列化一个 list.
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         DataOutputViewStreamWrapper view = new DataOutputViewStreamWrapper(baos);
         serializeList(records, view);
@@ -98,6 +111,7 @@ public abstract class ObjectSerializer<T> implements Serializable {
 
     /** De-serializes a record list from the given source input view. */
     public final List<T> deserializeList(DataInputView source) throws IOException {
+        // 反序列化一个 list.
         int size = source.readInt();
         List<T> records = new ArrayList<>(size);
         for (int i = 0; i < size; i++) {
@@ -107,14 +121,23 @@ public abstract class ObjectSerializer<T> implements Serializable {
     }
 
     public final List<T> deserializeList(byte[] bytes) throws IOException {
+        // 反序列化一个 list.
         ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
         DataInputViewStreamWrapper view = new DataInputViewStreamWrapper(bais);
         return deserializeList(view);
     }
 
-    /** Convert a {@link T} to {@link InternalRow}. */
+    /**
+     * 具体子类实现决定如何转换为 row.
+     *
+     * <p>Convert a {@link T} to {@link InternalRow}.
+     */
     public abstract InternalRow toRow(T record);
 
-    /** Convert a {@link InternalRow} to {@link T}. */
+    /**
+     * 具体子类实现决定如何如何从 row 转换成一个具体对象.
+     *
+     * <p>Convert a {@link InternalRow} to {@link T}.
+     */
     public abstract T fromRow(InternalRow rowData);
 }

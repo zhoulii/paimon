@@ -26,7 +26,11 @@ import javax.annotation.concurrent.ThreadSafe;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
-/** Factory which produces new {@link Path}s for data files. */
+/**
+ * 生成 data file 的 path.
+ *
+ * <p>Factory which produces new {@link Path}s for data files.
+ */
 @ThreadSafe
 public class DataFilePathFactory {
 
@@ -51,19 +55,23 @@ public class DataFilePathFactory {
     }
 
     public Path newPath() {
+        // 生成一个 data 文件路径.
         return newPath(DATA_FILE_PREFIX);
     }
 
     public Path newChangelogPath() {
+        // 生成一个 changelog 文件路径.
         return newPath(CHANGELOG_FILE_PREFIX);
     }
 
     private Path newPath(String prefix) {
+        // 生成一个文件路径
         String name = prefix + uuid + "-" + pathCount.getAndIncrement() + "." + formatIdentifier;
         return new Path(parent, name);
     }
 
     public Path toPath(String fileName) {
+        // 将文件名转换为路径.
         return new Path(parent + "/" + fileName);
     }
 
@@ -73,10 +81,12 @@ public class DataFilePathFactory {
     }
 
     public static Path toFileIndexPath(Path filePath) {
+        // 将文件路径转换为文件索引路径.
         return new Path(filePath.getParent(), filePath.getName() + INDEX_PATH_SUFFIX);
     }
 
     public static String formatIdentifier(String fileName) {
+        // 获取文件格式
         int index = fileName.lastIndexOf('.');
         if (index == -1) {
             throw new IllegalArgumentException(fileName + " is not a legal file name.");
