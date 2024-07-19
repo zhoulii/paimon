@@ -36,7 +36,11 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-/** Index manifest file. */
+/**
+ * 存储 IndexManifestEntry.
+ *
+ * <p>Index manifest file.
+ */
 public class IndexManifestFile extends ObjectsFile<IndexManifestEntry> {
 
     private IndexManifestFile(
@@ -53,15 +57,23 @@ public class IndexManifestFile extends ObjectsFile<IndexManifestEntry> {
                 null);
     }
 
-    /** Merge new index files to index manifest. */
+    /**
+     * 合并新的 IndexManifestEntry 到 IndexManifestFile 中.
+     *
+     * <p>Merge new index files to index manifest.
+     */
     @Nullable
     public String merge(
             @Nullable String previousIndexManifest, List<IndexManifestEntry> newIndexFiles) {
         String indexManifest = previousIndexManifest;
         if (newIndexFiles.size() > 0) {
             Map<Identifier, IndexManifestEntry> indexEntries = new LinkedHashMap<>();
+
+            // 原先 IndexManifestFile 中包含的 IndexManifestEntry.
             List<IndexManifestEntry> entries =
                     indexManifest == null ? new ArrayList<>() : read(indexManifest);
+
+            // 将原先的与新增的 IndexManifestEntry 合并到一个 List，然后遍历，ADD 类型留下，Remove 类型删除
             entries.addAll(newIndexFiles);
             for (IndexManifestEntry file : entries) {
                 if (file.kind() == FileKind.ADD) {
@@ -70,6 +82,8 @@ public class IndexManifestFile extends ObjectsFile<IndexManifestEntry> {
                     indexEntries.remove(file.identifier());
                 }
             }
+
+            // 重新生成一个 IndexManifestFile.
             indexManifest = writeWithoutRolling(indexEntries.values());
         }
 

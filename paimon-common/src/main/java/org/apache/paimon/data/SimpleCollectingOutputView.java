@@ -33,12 +33,16 @@ import java.util.List;
  */
 public class SimpleCollectingOutputView extends AbstractPagedOutputView {
 
+    // output 的真正存储.
     private final List<MemorySegment> fullSegments;
 
+    // 用于创建 MemorySegment.
     private final MemorySegmentSource memorySource;
 
+    // MemorySegment 的大小对应以 2 为底的对数
     private final int segmentSizeBits;
 
+    // fullSegments 中已经写满的 MemorySegment 的数量
     private int segmentNum;
 
     public SimpleCollectingOutputView(MemorySegmentSource memSource, int segmentSize) {
@@ -55,13 +59,14 @@ public class SimpleCollectingOutputView extends AbstractPagedOutputView {
     }
 
     public void reset() {
+        // 重置状态，要求重置前 this.fullSegments 不包含元素.
         if (this.fullSegments.size() != 0) {
             throw new IllegalStateException("The target list still contains memory segments.");
         }
 
-        clear();
+        clear(); // 清除写入状态
         try {
-            advance();
+            advance(); // 初始化 current MemorySegment
         } catch (IOException ioex) {
             throw new RuntimeException("Error getting first segment for record collector.", ioex);
         }
@@ -71,6 +76,7 @@ public class SimpleCollectingOutputView extends AbstractPagedOutputView {
     @Override
     protected MemorySegment nextSegment(MemorySegment current, int positionInCurrent)
             throws EOFException {
+        // 获取一个 MemorySegment
         final MemorySegment next = this.memorySource.nextSegment();
         if (next != null) {
             this.fullSegments.add(next);
@@ -82,6 +88,9 @@ public class SimpleCollectingOutputView extends AbstractPagedOutputView {
     }
 
     public long getCurrentOffset() {
+        // 计算当前 offset
+        // 例如  this.segmentNum = 2， this.segmentSizeBits = 5，getCurrentPositionInSegment() = 3
+        // 则 offset = 2 * 2^5 + 3 = 35
         return (((long) this.segmentNum) << this.segmentSizeBits) + getCurrentPositionInSegment();
     }
 }

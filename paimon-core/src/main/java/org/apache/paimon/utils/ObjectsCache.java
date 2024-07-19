@@ -35,7 +35,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BiFunction;
 
-/** Cache records to {@link SegmentsCache} by compacted serializer. */
+/**
+ * 对象缓存，基于 SegmentsCache.
+ *
+ * <p>Cache records to {@link SegmentsCache} by compacted serializer.
+ */
 public class ObjectsCache<K, V> {
 
     private final SegmentsCache<K> cache;
@@ -53,12 +57,21 @@ public class ObjectsCache<K, V> {
         this.reader = reader;
     }
 
+    /**
+     * 从缓存中读取对象.
+     *
+     * @param key cache key 是文件名称
+     * @param fileSize file size
+     * @param loadFilter filter for loading data
+     * @param readFilter filter for reading data
+     */
     public List<V> read(
             K key,
             @Nullable Long fileSize,
             Filter<InternalRow> loadFilter,
             Filter<InternalRow> readFilter)
             throws IOException {
+        // 先从缓存中读取，没有则从文件读取并将读取结果放回缓存.
         Segments segments = cache.getSegments(key, k -> readSegments(k, fileSize, loadFilter));
         List<V> entries = new ArrayList<>();
         RandomAccessInputView view =
@@ -67,9 +80,9 @@ public class ObjectsCache<K, V> {
         BinaryRow binaryRow = new BinaryRow(rowSerializer.getArity());
         while (true) {
             try {
-                rowSerializer.mapFromPages(binaryRow, view);
+                rowSerializer.mapFromPages(binaryRow, view); // 将 binary row 指向一段内存对象
                 if (readFilter.test(binaryRow)) {
-                    entries.add(serializer.fromRow(binaryRow));
+                    entries.add(serializer.fromRow(binaryRow)); // 将 binary row 转换为特定的对象
                 }
             } catch (EOFException e) {
                 return entries;
@@ -78,7 +91,8 @@ public class ObjectsCache<K, V> {
     }
 
     private Segments readSegments(K key, @Nullable Long fileSize, Filter<InternalRow> loadFilter) {
-        try (CloseableIterator<InternalRow> iterator = reader.apply(key, fileSize)) {
+        // 从文件读取数据，并创建 Segments.
+        try (CloseableIterator<InternalRow> iterator = reader.apply(key, fileSize)) { // 读取文件内容
             ArrayList<MemorySegment> segments = new ArrayList<>();
             MemorySegmentSource segmentSource =
                     () -> MemorySegment.allocateHeapMemory(cache.pageSize());
@@ -87,9 +101,11 @@ public class ObjectsCache<K, V> {
             while (iterator.hasNext()) {
                 InternalRow row = iterator.next();
                 if (loadFilter.test(row)) {
+                    // 序列化写出
                     rowSerializer.serializeToPages(row, output);
                 }
             }
+            // 创建 Segments，output.getCurrentPositionInSegment() 为最后一个 MemorySegment 的当前写入位置.
             return new Segments(segments, output.getCurrentPositionInSegment());
         } catch (Exception e) {
             throw new RuntimeException(e);

@@ -21,7 +21,9 @@ package org.apache.paimon.utils;
 import org.apache.paimon.predicate.Predicate;
 
 /**
- * Represents a filter (boolean-valued function) of one argument. This class is for avoiding name
+ * 条件判断接口.
+ *
+ * <p>Represents a filter (boolean-valued function) of one argument. This class is for avoiding name
  * conflicting to {@link Predicate}.
  */
 @FunctionalInterface

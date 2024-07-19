@@ -43,14 +43,18 @@ import java.io.IOException;
 import java.util.List;
 
 /**
- * This file includes several {@link ManifestEntry}s, representing the additional changes since last
- * snapshot.
+ * 存储 ManifestEntry 对象. ManifestEntry 也可简化为 SimpleEntry，然后由 ObjectFile 写入读取.
+ *
+ * <p>This file includes several {@link ManifestEntry}s, representing the additional changes since
+ * last snapshot.
  */
 public class ManifestFile extends ObjectsFile<ManifestEntry> {
 
     private final SchemaManager schemaManager;
     private final RowType partitionType;
     private final FormatWriterFactory writerFactory;
+
+    // 超过则滚动文件
     private final long suggestedFileSize;
 
     private ManifestFile(
@@ -76,7 +80,9 @@ public class ManifestFile extends ObjectsFile<ManifestEntry> {
     }
 
     /**
-     * Write several {@link ManifestEntry}s into manifest files.
+     * 滚动写，返回写入文件的元信息，可能有多个文件，对应多个元数据
+     *
+     * <p>Write several {@link ManifestEntry}s into manifest files.
      *
      * <p>NOTE: This method is atomic.
      */
@@ -92,6 +98,7 @@ public class ManifestFile extends ObjectsFile<ManifestEntry> {
     }
 
     public RollingFileWriter<ManifestEntry, ManifestFileMeta> createRollingWriter() {
+        // 创建 RollingFileWriter，实际由 ManifestEntryWriter 负责写出工作.
         return new RollingFileWriter<>(
                 () ->
                         new ManifestEntryWriter(
@@ -102,7 +109,7 @@ public class ManifestFile extends ObjectsFile<ManifestEntry> {
     }
 
     private class ManifestEntryWriter extends SingleFileWriter<ManifestEntry, ManifestFileMeta> {
-
+        // ManifestEntryWriter 用于写出 ManifestEntry
         private final TableStatsCollector partitionStatsCollector;
         private final FieldStatsArraySerializer partitionStatsSerializer;
 
@@ -123,17 +130,18 @@ public class ManifestFile extends ObjectsFile<ManifestEntry> {
 
             switch (entry.kind()) {
                 case ADD:
-                    numAddedFiles++;
+                    numAddedFiles++; // 统计新增文件数量
                     break;
                 case DELETE:
-                    numDeletedFiles++;
+                    numDeletedFiles++; // 统计删除文件数量
                     break;
                 default:
                     throw new UnsupportedOperationException("Unknown entry kind: " + entry.kind());
             }
             schemaId = Math.max(schemaId, entry.file().schemaId());
 
-            partitionStatsCollector.collect(entry.partition());
+            partitionStatsCollector.collect(
+                    entry.partition()); // 统计分区信息，是不是能用于过滤这个 ManifestFile 包含哪些分区的变更？
         }
 
         @Override
@@ -143,14 +151,18 @@ public class ManifestFile extends ObjectsFile<ManifestEntry> {
                     fileIO.getFileSize(path),
                     numAddedFiles,
                     numDeletedFiles,
-                    partitionStatsSerializer.toBinary(partitionStatsCollector.extract()),
+                    partitionStatsSerializer.toBinary(partitionStatsCollector.extract()), // 分区统计信息
                     numAddedFiles + numDeletedFiles > 0
-                            ? schemaId
-                            : schemaManager.latest().get().id());
+                            ? schemaId // 这批文件的最大 schemaId
+                            : schemaManager.latest().get().id()); // 最新 schemaId
         }
     }
 
-    /** Creator of {@link ManifestFile}. */
+    /**
+     * ManifestFile 的工厂类.
+     *
+     * <p>Creator of {@link ManifestFile}.
+     */
     public static class Factory {
 
         private final FileIO fileIO;
@@ -179,6 +191,7 @@ public class ManifestFile extends ObjectsFile<ManifestEntry> {
         }
 
         public ManifestFile create() {
+            // 添加个 _VERSION 字段
             RowType entryType = VersionedObjectSerializer.versionType(ManifestEntry.schema());
             return new ManifestFile(
                     fileIO,
@@ -193,6 +206,7 @@ public class ManifestFile extends ObjectsFile<ManifestEntry> {
         }
 
         public ObjectsFile<SimpleFileEntry> createSimpleFileEntryReader() {
+            // 直接读取 SimpleFileEntry
             RowType entryType = VersionedObjectSerializer.versionType(ManifestEntry.schema());
             return new ObjectsFile<>(
                     fileIO,

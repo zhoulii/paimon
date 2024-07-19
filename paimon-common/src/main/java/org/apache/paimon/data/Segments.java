@@ -22,11 +22,16 @@ import org.apache.paimon.memory.MemorySegment;
 
 import java.util.ArrayList;
 
-/** Segments with limit in last segment. */
+/**
+ * 一批 MemorySegment.
+ *
+ * <p>Segments with limit in last segment.
+ */
 public class Segments {
 
     private final ArrayList<MemorySegment> segments;
 
+    // 最后一个 MemorySegment 可能没填满，这个字段表示其上限.
     private final int limitInLastSegment;
 
     public Segments(ArrayList<MemorySegment> segments, int limitInLastSegment) {

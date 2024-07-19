@@ -166,6 +166,8 @@ public class FileUtils {
     public static RecordReader<InternalRow> createFormatReader(
             FileIO fileIO, FormatReaderFactory format, Path file, @Nullable Long fileSize)
             throws IOException {
+        // 创建一个 RecordReader<InternalRow>，用于读取文件.
+        // fileSize 可以表示文件大小，也可以表示读取的长度.
         try {
             if (fileSize == null) {
                 fileSize = fileIO.getFileSize(file);

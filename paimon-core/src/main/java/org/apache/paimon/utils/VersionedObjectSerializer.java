@@ -38,6 +38,7 @@ public abstract class VersionedObjectSerializer<T> extends ObjectSerializer<T> {
     }
 
     public static RowType versionType(RowType rowType) {
+        // 给一个 RowType 添加一个 _VERSION 字段.
         List<DataField> fields = new ArrayList<>();
         fields.add(new DataField(-1, "_VERSION", new IntType(false)));
         fields.addAll(rowType.getFields());

@@ -34,8 +34,10 @@ import javax.annotation.Nullable;
 import java.util.List;
 
 /**
- * This file includes several {@link ManifestFileMeta}, representing all data of the whole table at
- * the corresponding snapshot.
+ * ManifestFileMeta 是 ManifestFile 的元数据，ManifestList 用于存储 {@link ManifestFileMeta}。
+ *
+ * <p>This file includes several {@link ManifestFileMeta}, representing all data of the whole table
+ * at the corresponding snapshot.
  */
 public class ManifestList extends ObjectsFile<ManifestFileMeta> {
 
@@ -50,7 +52,9 @@ public class ManifestList extends ObjectsFile<ManifestFileMeta> {
     }
 
     /**
-     * Write several {@link ManifestFileMeta}s into a manifest list.
+     * 不滚动写.
+     *
+     * <p>Write several {@link ManifestFileMeta}s into a manifest list.
      *
      * <p>NOTE: This method is atomic.
      */

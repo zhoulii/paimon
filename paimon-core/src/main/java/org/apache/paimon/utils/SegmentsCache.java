@@ -27,7 +27,11 @@ import org.apache.paimon.shade.guava30.com.google.common.util.concurrent.MoreExe
 
 import java.util.function.Function;
 
-/** Cache {@link Segments}. */
+/**
+ * 缓存 Segments.
+ *
+ * <p>Cache {@link Segments}.
+ */
 public class SegmentsCache<T> {
 
     private static final int OBJECT_MEMORY_SIZE = 1000;
@@ -50,10 +54,12 @@ public class SegmentsCache<T> {
     }
 
     public Segments getSegments(T key, Function<T, Segments> viewFunction) {
+        // 如果缓存中存在与给定键相关联的Segments对象，则直接返回；否则，会调用viewFunction函数生成新的Segments对象，并将其放入缓存后返回.
         return cache.get(key, viewFunction);
     }
 
     private int weigh(T cacheKey, Segments segments) {
+        // 固定大小 + 每个segment的大小
         return OBJECT_MEMORY_SIZE + segments.segments().size() * pageSize;
     }
 }

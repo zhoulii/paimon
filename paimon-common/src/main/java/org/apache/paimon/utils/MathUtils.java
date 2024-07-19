@@ -43,8 +43,10 @@ public class MathUtils {
     }
 
     /**
-     * Computes the logarithm of the given value to the base of 2. This method throws an error, if
-     * the given argument is not a power of 2.
+     * 计算对数，如输入值为 8，输出值则为 3.
+     *
+     * <p>Computes the logarithm of the given value to the base of 2. This method throws an error,
+     * if the given argument is not a power of 2.
      *
      * @param value The value to compute the logarithm for.
      * @return The logarithm to the base of 2.

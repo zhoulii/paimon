@@ -39,7 +39,13 @@ import java.util.List;
 
 import static org.apache.paimon.utils.FileUtils.createFormatReader;
 
-/** A file which contains several {@link T}s, provides read and write. */
+/**
+ * 对象文件，实现类有 ManifestFile、ManifestList、IndexManifestFile.
+ *
+ * <p>ObjectsFile 也可以不依赖子类直接写出对象，写出的对象为 SimpleEntry.
+ *
+ * <p>A file which contains several {@link T}s, provides read and write.
+ */
 public class ObjectsFile<T> {
 
     protected final FileIO fileIO;
@@ -68,6 +74,7 @@ public class ObjectsFile<T> {
 
     public long fileSize(String fileName) {
         try {
+            // 获取文件大小
             return fileIO.getFileSize(pathFactory.toPath(fileName));
         } catch (IOException e) {
             throw new UncheckedIOException(e);
@@ -75,24 +82,29 @@ public class ObjectsFile<T> {
     }
 
     public List<T> read(String fileName) {
+        // 省略 filesize
         return read(fileName, null);
     }
 
     public List<T> read(String fileName, @Nullable Long fileSize) {
+        // 没有过滤条件
         return read(fileName, fileSize, Filter.alwaysTrue(), Filter.alwaysTrue());
     }
 
     public List<T> readWithIOException(String fileName) throws IOException {
+        // 省略 filesize
         return readWithIOException(fileName, null);
     }
 
     public List<T> readWithIOException(String fileName, @Nullable Long fileSize)
             throws IOException {
+        // 没有过滤条件
         return readWithIOException(fileName, fileSize, Filter.alwaysTrue(), Filter.alwaysTrue());
     }
 
     public boolean exists(String fileName) {
         try {
+            // 判断文件是否存在.
             return fileIO.exists(pathFactory.toPath(fileName));
         } catch (IOException e) {
             throw new UncheckedIOException(e);
@@ -107,6 +119,7 @@ public class ObjectsFile<T> {
         try {
             return readWithIOException(fileName, fileSize, loadFilter, readFilter);
         } catch (IOException e) {
+            // 捕获 IO 异常，日志信息有点问题.
             throw new RuntimeException("Failed to read manifest list " + fileName, e);
         }
     }
@@ -117,6 +130,7 @@ public class ObjectsFile<T> {
             Filter<InternalRow> loadFilter,
             Filter<InternalRow> readFilter)
             throws IOException {
+        // 缓存不为空，表示启用缓存，从缓存读取.
         if (cache != null) {
             return cache.read(fileName, fileSize, loadFilter, readFilter);
         }
@@ -127,18 +141,22 @@ public class ObjectsFile<T> {
             reader = reader.filter(readFilter);
         }
         List<T> result = new ArrayList<>();
+        // 读取剩余的数据，并将其转换为特定对象存储到 result 中.
         reader.forEachRemaining(row -> result.add(serializer.fromRow(row)));
         return result;
     }
 
     public String writeWithoutRolling(Collection<T> records) {
+        // 不滚动写
         return writeWithoutRolling(records.iterator());
     }
 
     public String writeWithoutRolling(Iterator<T> records) {
+        // 不滚动写
         Path path = pathFactory.newPath();
         try {
             try (PositionOutputStream out = fileIO.newOutputStream(path, false)) {
+                // 创建一个 FormatWriter，写出到 PositionOutputStream
                 FormatWriter writer =
                         writerFactory.create(out, CoreOptions.FILE_COMPRESSION.defaultValue());
                 try {
@@ -161,6 +179,7 @@ public class ObjectsFile<T> {
     private CloseableIterator<InternalRow> createIterator(
             String fileName, @Nullable Long fileSize) {
         try {
+            // 读取一个文件为 InternalRow Iterator，读取长度为 fileSize.
             return createFormatReader(fileIO, readerFactory, pathFactory.toPath(fileName), fileSize)
                     .toCloseableIterator();
         } catch (IOException e) {
@@ -169,6 +188,7 @@ public class ObjectsFile<T> {
     }
 
     public void delete(String fileName) {
+        // 删除一个文件
         fileIO.deleteQuietly(pathFactory.toPath(fileName));
     }
 }
