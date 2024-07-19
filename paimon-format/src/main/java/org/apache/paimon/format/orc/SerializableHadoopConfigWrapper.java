@@ -30,7 +30,11 @@ import java.io.Serializable;
 
 import static org.apache.paimon.utils.Preconditions.checkNotNull;
 
-/** Utility class to make a {@link Configuration Hadoop Configuration} serializable. */
+/**
+ * 工具类，序列化反序列化 hadoop configuration.
+ *
+ * <p>Utility class to make a {@link Configuration Hadoop Configuration} serializable.
+ */
 public final class SerializableHadoopConfigWrapper implements Serializable {
 
     private static final long serialVersionUID = 1L;
@@ -50,6 +54,9 @@ public final class SerializableHadoopConfigWrapper implements Serializable {
     private void writeObject(ObjectOutputStream out) throws IOException {
         out.defaultWriteObject();
 
+        // 通过单独的序列化器将Hadoop配置序列化，是为了避免在序列化过程中出现“cryptic exceptions”（晦涩难懂的异常）
+        // 这意味着直接使用默认的序列化方法来序列化Hadoop配置可能会导致一些难以理解的异常。
+        // 使用单独的序列化器可以更清晰地处理可能出现的异常，这样可能能更好地理解和调试代码中的任何与序列化相关的问题。
         // we write the Hadoop config through a separate serializer to avoid cryptic exceptions when
         // it
         // corrupts the serialization stream

@@ -22,7 +22,11 @@ import org.apache.paimon.fs.FileIO;
 import org.apache.paimon.fs.Path;
 import org.apache.paimon.reader.RecordReader;
 
-/** The context for creating orc {@link RecordReader}. */
+/**
+ * 创建 RecordReader 的上下文.
+ *
+ * <p>The context for creating orc {@link RecordReader}.
+ */
 public class OrcFormatReaderContext extends FormatReaderContext {
 
     private final int poolSize;

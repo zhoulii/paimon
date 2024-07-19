@@ -30,7 +30,9 @@ import org.apache.paimon.types.RowKind;
 import java.io.Serializable;
 
 /**
- * Columnar row to support access to vector column data. It is a row view in {@link
+ * 对 VectorizedColumnBatch 的封装，用于读取 VectorizedColumnBatch 中的数据.
+ *
+ * <p>Columnar row to support access to vector column data. It is a row view in {@link
  * VectorizedColumnBatch}.
  */
 public final class ColumnarRow implements InternalRow, DataSetters, Serializable {

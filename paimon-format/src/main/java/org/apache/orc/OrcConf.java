@@ -30,7 +30,9 @@ import java.util.Properties;
  * additional information regarding copyright ownership. */
 
 /**
- * Define the configuration properties that Orc understands.
+ * 读写 ORC 格式的配置.
+ *
+ * <p>Define the configuration properties that Orc understands.
  *
  * <p>NOTE: The file was copied and modified to support zstd-jni. This feature is only supported in
  * ORC 2.0, but 2.0 only supports JDK17. We need to support JDK8.

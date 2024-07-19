@@ -29,8 +29,10 @@ import org.apache.paimon.data.columnar.BytesColumnVector.Bytes;
 import java.io.Serializable;
 
 /**
- * A VectorizedColumnBatch is a set of rows, organized with each column as a vector. It is the unit
- * of query execution, organized to minimize the cost per row.
+ * 和 VectorizedRowBatch 其实是一个意思.
+ *
+ * <p>A VectorizedColumnBatch is a set of rows, organized with each column as a vector. It is the
+ * unit of query execution, organized to minimize the cost per row.
  *
  * <p>{@code VectorizedColumnBatch}s are influenced by Apache Hive VectorizedRowBatch.
  */
@@ -44,6 +46,7 @@ public class VectorizedColumnBatch implements Serializable {
      */
     public static final int DEFAULT_SIZE = 2048;
 
+    // 有多少行数据.
     private int numRows;
 
     public final ColumnVector[] columns;

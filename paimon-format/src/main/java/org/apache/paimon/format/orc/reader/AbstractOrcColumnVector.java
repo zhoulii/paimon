@@ -34,7 +34,11 @@ import org.apache.hadoop.hive.ql.exec.vector.MapColumnVector;
 import org.apache.hadoop.hive.ql.exec.vector.StructColumnVector;
 import org.apache.hadoop.hive.ql.exec.vector.TimestampColumnVector;
 
-/** This column vector is used to adapt hive's ColumnVector to Paimon's ColumnVector. */
+/**
+ * 桥接 hive 的 ColumnVector 到 Paimon 的 ColumnVector.
+ *
+ * <p>This column vector is used to adapt hive's ColumnVector to Paimon's ColumnVector.
+ */
 public abstract class AbstractOrcColumnVector
         implements org.apache.paimon.data.columnar.ColumnVector {
 
@@ -49,6 +53,7 @@ public abstract class AbstractOrcColumnVector
         return !vector.noNulls && vector.isNull[vector.isRepeating ? 0 : i];
     }
 
+    // 创建各种类型的 paimon ColumnVector.
     public static org.apache.paimon.data.columnar.ColumnVector createPaimonVector(
             ColumnVector vector, DataType dataType) {
         if (vector instanceof LongColumnVector) {

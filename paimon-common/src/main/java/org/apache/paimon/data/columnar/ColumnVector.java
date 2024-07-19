@@ -18,7 +18,11 @@
 
 package org.apache.paimon.data.columnar;
 
-/** Nullable column vector. Access data through specific subclasses. */
+/**
+ * 存储一列数据.
+ *
+ * <p>Nullable column vector. Access data through specific subclasses.
+ */
 public interface ColumnVector {
     boolean isNullAt(int i);
 }

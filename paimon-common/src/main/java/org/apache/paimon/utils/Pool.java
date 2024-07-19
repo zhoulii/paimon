@@ -22,14 +22,21 @@ import javax.annotation.Nullable;
 
 import java.util.concurrent.ArrayBlockingQueue;
 
-/** A pool to cache and recycle heavyweight objects, to reduce object allocation. */
+/**
+ * 缓存和循环利用重量级的对象，减少 JVM 对象分配开销.
+ *
+ * <p>A pool to cache and recycle heavyweight objects, to reduce object allocation.
+ */
 public class Pool<T> {
 
     private final ArrayBlockingQueue<T> pool;
 
     private final Recycler<T> recycler;
 
+    // ArrayBlockingQueue 的大小.
     private final int poolCapacity;
+
+    // 计数变量
     private int poolSize;
 
     /**
@@ -38,20 +45,24 @@ public class Pool<T> {
      */
     public Pool(int poolCapacity) {
         this.pool = new ArrayBlockingQueue<>(poolCapacity);
-        this.recycler = this::addBack;
+        this.recycler = this::addBack; // 直接放回，不做容量校验
         this.poolCapacity = poolCapacity;
         this.poolSize = 0;
     }
 
     /**
-     * Gets the recycler for this pool. The recycler returns its given objects back to this pool.
+     * Pool 的回收器，用于回收对象到 POOL 中.
+     *
+     * <p>Gets the recycler for this pool. The recycler returns its given objects back to this pool.
      */
     public Recycler<T> recycler() {
         return recycler;
     }
 
     /**
-     * Adds an entry to the pool with an optional payload. This method fails if called more often
+     * 添加一个对象.
+     *
+     * <p>Adds an entry to the pool with an optional payload. This method fails if called more often
      * than the pool capacity specified during construction.
      */
     public synchronized void add(T object) {
@@ -63,18 +74,30 @@ public class Pool<T> {
         addBack(object);
     }
 
-    /** Gets the next cached entry. This blocks until the next entry is available. */
+    /**
+     * 阻塞调用.
+     *
+     * <p>Gets the next cached entry. This blocks until the next entry is available.
+     */
     public T pollEntry() throws InterruptedException {
         return pool.take();
     }
 
-    /** Tries to get the next cached entry. If the pool is empty, this method returns null. */
+    /**
+     * 非阻塞调用.
+     *
+     * <p>Tries to get the next cached entry. If the pool is empty, this method returns null.
+     */
     @Nullable
     public T tryPollEntry() {
         return pool.poll();
     }
 
-    /** Internal callback to put an entry back to the pool. */
+    /**
+     * 内部方法，放入一个对象.
+     *
+     * <p>Internal callback to put an entry back to the pool.
+     */
     void addBack(T object) {
         pool.add(object);
     }
@@ -82,7 +105,9 @@ public class Pool<T> {
     // --------------------------------------------------------------------------------------------
 
     /**
-     * A Recycler puts objects into the pool that the recycler is associated with.
+     * 回收一个对象.
+     *
+     * <p>A Recycler puts objects into the pool that the recycler is associated with.
      *
      * @param <T> The pooled and recycled type.
      */

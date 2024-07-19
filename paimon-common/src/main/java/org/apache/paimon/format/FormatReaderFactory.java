@@ -26,7 +26,11 @@ import org.apache.paimon.reader.RecordReader;
 import java.io.IOException;
 import java.io.Serializable;
 
-/** A factory to create {@link RecordReader} for file. */
+/**
+ * 创建不同格式的 RecordReader. 目前有三个实现：avro、orc、parquet.
+ *
+ * <p>A factory to create {@link RecordReader} for file.
+ */
 public interface FormatReaderFactory extends Serializable {
 
     RecordReader<InternalRow> createReader(Context context) throws IOException;

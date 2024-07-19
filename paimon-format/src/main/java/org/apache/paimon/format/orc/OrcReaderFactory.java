@@ -54,19 +54,27 @@ import static org.apache.paimon.format.orc.reader.AbstractOrcColumnVector.create
 import static org.apache.paimon.format.orc.reader.OrcSplitReaderUtil.toOrcType;
 import static org.apache.paimon.utils.Preconditions.checkNotNull;
 
-/** An ORC reader that produces a stream of {@link ColumnarRow} records. */
+/**
+ * 创建读取 orc 格式的 RecordReader. 返回 ColumnarRow.
+ *
+ * <p>An ORC reader that produces a stream of {@link ColumnarRow} records.
+ */
 public class OrcReaderFactory implements FormatReaderFactory {
 
     private static final long serialVersionUID = 1L;
 
     protected final SerializableHadoopConfigWrapper hadoopConfigWrapper;
 
+    // TypeDescription 描述 orc 文件中的类型
     protected final TypeDescription schema;
 
+    // 表的字段类型
     private final RowType tableType;
 
+    // 筛选条件
     protected final List<OrcFilters.Predicate> conjunctPredicates;
 
+    // orc reader 读取的批大小
     protected final int batchSize;
 
     /**
@@ -95,6 +103,7 @@ public class OrcReaderFactory implements FormatReaderFactory {
                 context instanceof OrcFormatReaderContext
                         ? ((OrcFormatReaderContext) context).poolSize()
                         : 1;
+        // Pool 里可以存储多少 OrcReaderBatch
         Pool<OrcReaderBatch> poolOfBatches = createPoolOfBatches(context.filePath(), poolSize);
 
         RecordReader orcReader =
@@ -110,7 +119,9 @@ public class OrcReaderFactory implements FormatReaderFactory {
     }
 
     /**
-     * Creates the {@link OrcReaderBatch} structure, which is responsible for holding the data
+     * 将 VectorizedRowBatch 转换为 VectorizedColumnBatch，然后创建 OrcReaderBatch.
+     *
+     * <p>Creates the {@link OrcReaderBatch} structure, which is responsible for holding the data
      * structures that hold the batch data (column vectors, row arrays, ...) and the batch
      * conversion from the ORC representation to the result format.
      */
@@ -120,6 +131,7 @@ public class OrcReaderFactory implements FormatReaderFactory {
         List<DataType> tableFieldTypes = tableType.getFieldTypes();
 
         // create and initialize the row batch
+        // 创建 ColumnVector，最终为了创建 VectorizedColumnBatch.
         ColumnVector[] vectors = new ColumnVector[tableType.getFieldCount()];
         for (int i = 0; i < vectors.length; i++) {
             String name = tableFieldNames.get(i);
@@ -135,6 +147,8 @@ public class OrcReaderFactory implements FormatReaderFactory {
         final Pool<OrcReaderBatch> pool = new Pool<>(numBatches);
 
         for (int i = 0; i < numBatches; i++) {
+            // VectorizedRowBatch 是个 Row 集合，但是按列存储.
+            // batchSize / numBatches 作为 VectorizedRowBatch 批次大小，相当于将一个大批次转成多个小批次
             final VectorizedRowBatch orcBatch = createBatchWrapper(schema, batchSize / numBatches);
             final OrcReaderBatch batch = createReaderBatch(filePath, orcBatch, pool.recycler());
             pool.add(batch);
@@ -167,7 +181,9 @@ public class OrcReaderFactory implements FormatReaderFactory {
         }
 
         /**
-         * Puts this batch back into the pool. This should be called after all records from the
+         * 释放 OrcReaderBatch 时，将其放回 pool.
+         *
+         * <p>Puts this batch back into the pool. This should be called after all records from the
          * batch have been returned, typically in the {@link RecordIterator#releaseBatch()} method.
          */
         public void recycle() {
@@ -181,10 +197,12 @@ public class OrcReaderFactory implements FormatReaderFactory {
 
         private RecordIterator<InternalRow> convertAndGetIterator(
                 VectorizedRowBatch orcBatch, long rowNumber) {
+            // 不需要复制 VectorizedRowBatch 到 VectorizedColumnBatch，其底层数组一致.
+            // VectorizedColumnBatch 中的 ColumnVector 基于 VectorizedRowBatch 中的 ColumnVector.
             // no copying from the ORC column vectors to the Paimon columns vectors necessary,
             // because they point to the same data arrays internally design
-            paimonColumnBatch.setNumRows(orcBatch.size);
-            result.reset(rowNumber);
+            paimonColumnBatch.setNumRows(orcBatch.size); // 批次大小
+            result.reset(rowNumber); // 下一次要读去的行数
             return result;
         }
     }
@@ -192,8 +210,10 @@ public class OrcReaderFactory implements FormatReaderFactory {
     // ------------------------------------------------------------------------
 
     /**
-     * A vectorized ORC reader. This reader reads an ORC Batch at a time and converts it to one or
-     * more records to be returned. An ORC Row-wise reader would convert the batch into a set of
+     * 基于 orc RecordReader 向量化读取一个批次的数据，并转换为行返回.
+     *
+     * <p>A vectorized ORC reader. This reader reads an ORC Batch at a time and converts it to one
+     * or more records to be returned. An ORC Row-wise reader would convert the batch into a set of
      * rows, while a reader for a vectorized query processor might return the whole batch as one
      * record.
      *
@@ -218,15 +238,19 @@ public class OrcReaderFactory implements FormatReaderFactory {
         @Nullable
         @Override
         public RecordIterator<InternalRow> readBatch() throws IOException {
+            // 获取一个 OrcReaderBatch 对象
             final OrcReaderBatch batch = getCachedEntry();
+            // 获取 OrcReaderBatch 中的 VectorizedRowBatch 对象
             final VectorizedRowBatch orcVectorBatch = batch.orcVectorizedRowBatch();
 
+            // orcReader 下次要读第几行.
             long rowNumber = orcReader.getRowNumber();
-            if (!nextBatch(orcReader, orcVectorBatch)) {
-                batch.recycle();
-                return null;
+            if (!nextBatch(orcReader, orcVectorBatch)) { // 读取一个 batch 的数据到 rowBatch 中.
+                batch.recycle(); // 没有读到数据，回收 OrcReaderBatch
+                return null; // 没有数据
             }
 
+            // 读取结果转换为 RecordIterator<InternalRow>
             return batch.convertAndGetIterator(orcVectorBatch, rowNumber);
         }
 
@@ -254,8 +278,11 @@ public class OrcReaderFactory implements FormatReaderFactory {
             long splitStart,
             long splitLength)
             throws IOException {
+        // 创建 orc reader.
         org.apache.orc.Reader orcReader = createReader(conf, fileIO, path);
         try {
+            // createRecordReader 只被调用过一次，splitStart 为 0，splitLength 为文件长度
+            // 所以是读取整个文件中所有 stripe.
             // get offset and length for the stripes that start in the split
             Pair<Long, Long> offsetAndLength =
                     getOffsetAndLengthForSplit(splitStart, splitLength, orcReader.getStripes());
@@ -264,13 +291,18 @@ public class OrcReaderFactory implements FormatReaderFactory {
             org.apache.orc.Reader.Options options =
                     new org.apache.orc.Reader.Options()
                             .schema(schema)
-                            .range(offsetAndLength.getLeft(), offsetAndLength.getRight())
-                            .useZeroCopy(OrcConf.USE_ZEROCOPY.getBoolean(conf))
-                            .skipCorruptRecords(OrcConf.SKIP_CORRUPT_DATA.getBoolean(conf))
+                            .range(
+                                    offsetAndLength.getLeft(),
+                                    offsetAndLength.getRight()) // 读取的数据范围.
+                            .useZeroCopy(OrcConf.USE_ZEROCOPY.getBoolean(conf)) // 是否使用 zero copy.
+                            .skipCorruptRecords(
+                                    OrcConf.SKIP_CORRUPT_DATA.getBoolean(conf)) // 是否跳过损坏数据.
                             .tolerateMissingSchema(
-                                    OrcConf.TOLERATE_MISSING_SCHEMA.getBoolean(conf));
+                                    OrcConf.TOLERATE_MISSING_SCHEMA.getBoolean(
+                                            conf)); // 容忍不完整的 schema.
 
             // configure filters
+            // 设置读取时的过滤条件.
             if (!conjunctPredicates.isEmpty()) {
                 SearchArgument.Builder b = SearchArgumentFactory.newBuilder();
                 b = b.startAnd();
@@ -282,9 +314,11 @@ public class OrcReaderFactory implements FormatReaderFactory {
             }
 
             // create ORC row reader
+            // 创建 orc Recorder，能够一行一行读取数据.
             RecordReader orcRowsReader = orcReader.rows(options);
 
             // assign ids
+            // 给 TypeDescription 分配一个唯一 ID
             schema.getId();
 
             return orcRowsReader;
@@ -296,16 +330,27 @@ public class OrcReaderFactory implements FormatReaderFactory {
     }
 
     private static VectorizedRowBatch createBatchWrapper(TypeDescription schema, int batchSize) {
+        // VectorizedRowBatch 是一个类，用于存储列向量数据.
+        //
+        // 在传统的查询执行中，数据通常是以逐行的方式处理的，即一次处理一行数据。而在向量化查询执行中，数据被处理为列向量，允许以更高效的方式进行批量处理，从而提高了查询执行的性能。
+        // VectorizedRowBatch 类主要用于存储查询结果或中间数据。它以列式存储（columnar
+        // storage）的方式组织数据，允许查询运算符一次性处理一批数据，而不是一次处理一行。
+        // 此类还提供了许多方法来访问和操作存储的列向量数据，包括获取值、设置值、批处理过滤等。
         return schema.createRowBatch(batchSize);
     }
 
     private static boolean nextBatch(RecordReader reader, VectorizedRowBatch rowBatch)
             throws IOException {
+        // 读取一个 batch 的数据到 rowBatch 中.
         return reader.nextBatch(rowBatch);
     }
 
     private static Pair<Long, Long> getOffsetAndLengthForSplit(
             long splitStart, long splitLength, List<StripeInformation> stripes) {
+        // 要读取的 stripe 范围区间
+        // 比如，有如下 stripe: [0, 10], [11, 20], [21, 30]
+        // 返回值为：[0,30]
+
         long splitEnd = splitStart + splitLength;
         long readStart = Long.MAX_VALUE;
         long readEnd = Long.MIN_VALUE;
@@ -326,6 +371,15 @@ public class OrcReaderFactory implements FormatReaderFactory {
         }
     }
 
+    /**
+     * 创建 orc reader.
+     *
+     * @param conf orc reader conf
+     * @param fileIO file io
+     * @param path file path
+     * @return orc reader
+     * @throws IOException IOException
+     */
     public static org.apache.orc.Reader createReader(
             org.apache.hadoop.conf.Configuration conf,
             FileIO fileIO,
