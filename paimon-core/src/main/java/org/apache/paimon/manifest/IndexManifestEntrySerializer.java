@@ -29,7 +29,11 @@ import static org.apache.paimon.index.IndexFileMetaSerializer.rowArrayDataToDvRa
 import static org.apache.paimon.utils.SerializationUtils.deserializeBinaryRow;
 import static org.apache.paimon.utils.SerializationUtils.serializeBinaryRow;
 
-/** A {@link VersionedObjectSerializer} for {@link IndexManifestEntry}. */
+/**
+ * 用于序列化 IndexManifestEntry.
+ *
+ * <p>A {@link VersionedObjectSerializer} for {@link IndexManifestEntry}.
+ */
 public class IndexManifestEntrySerializer extends VersionedObjectSerializer<IndexManifestEntry> {
 
     public IndexManifestEntrySerializer() {

@@ -37,7 +37,11 @@ import java.util.function.Function;
 
 import static org.apache.paimon.utils.SerializationUtils.newBytesType;
 
-/** Entry of a manifest file, representing an addition / deletion of a data file. */
+/**
+ * 表示添加或删除一个文件记录，主要用于表示一个 DataFileMeta.
+ *
+ * <p>Entry of a manifest file, representing an addition / deletion of a data file.
+ */
 public class ManifestEntry implements FileEntry {
 
     private final FileKind kind;
@@ -138,8 +142,10 @@ public class ManifestEntry implements FileEntry {
     }
 
     /**
-     * According to the {@link ManifestCacheFilter}, entry that needs to be cached will be retained,
-     * so the entry that will not be accessed in the future will not be cached.
+     * loadFilter，用于决定哪些 Entry 需要被缓存.
+     *
+     * <p>According to the {@link ManifestCacheFilter}, entry that needs to be cached will be
+     * retained, so the entry that will not be accessed in the future will not be cached.
      *
      * <p>Implemented to {@link InternalRow} is for performance (No deserialization).
      */
@@ -155,16 +161,20 @@ public class ManifestEntry implements FileEntry {
         Function<InternalRow, Integer> totalBucketGetter =
                 ManifestEntrySerializer.totalBucketGetter();
         return row -> {
+            // dynamic bucket 模式下都需要缓存.
             if (numOfBuckets != totalBucketGetter.apply(row)) {
                 return true;
             }
 
+            // 只缓存某个分区下的某个 bucket.
             return manifestCacheFilter.test(partitionGetter.apply(row), bucketGetter.apply(row));
         };
     }
 
     /**
-     * Read the corresponding entries based on the current required partition and bucket.
+     * 用于过滤出需要的 entry.
+     *
+     * <p>Read the corresponding entries based on the current required partition and bucket.
      *
      * <p>Implemented to {@link InternalRow} is for performance (No deserialization).
      */

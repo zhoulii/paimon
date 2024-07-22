@@ -69,8 +69,10 @@ public class SerializationUtils {
     }
 
     /**
-     * Serialize {@link BinaryRow}, the difference between this and {@code BinaryRowSerializer} is
-     * that arity is also serialized here, so the deserialization is schemaless.
+     * 将 BinaryRow 转换为 byte 数组，包含长度.
+     *
+     * <p>Serialize {@link BinaryRow}, the difference between this and {@code BinaryRowSerializer}
+     * is that arity is also serialized here, so the deserialization is schemaless.
      */
     public static byte[] serializeBinaryRow(BinaryRow row) {
         byte[] bytes = copyToBytes(row.getSegments(), row.getOffset(), row.getSizeInBytes());
@@ -79,7 +81,11 @@ public class SerializationUtils {
         return buffer.array();
     }
 
-    /** Schemaless deserialization for {@link BinaryRow}. */
+    /**
+     * 将 byte[] 转换为 BinaryRow.
+     *
+     * <p>Schemaless deserialization for {@link BinaryRow}.
+     */
     public static BinaryRow deserializeBinaryRow(byte[] bytes) {
         ByteBuffer buffer = ByteBuffer.wrap(bytes);
         int arity = buffer.getInt();

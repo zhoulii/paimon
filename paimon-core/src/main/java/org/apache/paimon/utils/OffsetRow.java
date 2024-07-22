@@ -26,7 +26,11 @@ import org.apache.paimon.data.InternalRow;
 import org.apache.paimon.data.Timestamp;
 import org.apache.paimon.types.RowKind;
 
-/** A {@link InternalRow} to wrap row with offset. */
+/**
+ * OffsetRow 用于包装 InternalRow 的一段数据，表示从某个位置开始的长度为 arity 的区间.
+ *
+ * <p>A {@link InternalRow} to wrap row with offset.
+ */
 public class OffsetRow implements InternalRow {
 
     private final int arity;

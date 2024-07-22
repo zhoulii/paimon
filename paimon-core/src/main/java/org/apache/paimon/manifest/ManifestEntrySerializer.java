@@ -29,7 +29,11 @@ import java.util.function.Function;
 import static org.apache.paimon.utils.SerializationUtils.deserializeBinaryRow;
 import static org.apache.paimon.utils.SerializationUtils.serializeBinaryRow;
 
-/** Serializer for {@link ManifestEntry}. */
+/**
+ * 序列化 ManifestEntry.
+ *
+ * <p>Serializer for {@link ManifestEntry}.
+ */
 public class ManifestEntrySerializer extends VersionedObjectSerializer<ManifestEntry> {
 
     private static final long serialVersionUID = 1L;
@@ -43,11 +47,13 @@ public class ManifestEntrySerializer extends VersionedObjectSerializer<ManifestE
 
     @Override
     public int getVersion() {
+        // ManifestEntry 的版本号
         return 2;
     }
 
     @Override
     public InternalRow convertTo(ManifestEntry entry) {
+        // ManifestEntry 转换为 InternalRow.
         GenericRow row = new GenericRow(5);
         row.setField(0, entry.kind().toByteValue());
         row.setField(1, serializeBinaryRow(entry.partition()));
@@ -59,6 +65,7 @@ public class ManifestEntrySerializer extends VersionedObjectSerializer<ManifestE
 
     @Override
     public ManifestEntry convertFrom(int version, InternalRow row) {
+        // 将 InternalRow 转换为 ManifestEntry.
         if (version != 2) {
             if (version == 1) {
                 throw new IllegalArgumentException(
@@ -77,14 +84,17 @@ public class ManifestEntrySerializer extends VersionedObjectSerializer<ManifestE
     }
 
     public static Function<InternalRow, BinaryRow> partitionGetter() {
+        // InternalRow 中表示分区字段的 getter.
         return row -> deserializeBinaryRow(row.getBinary(2));
     }
 
     public static Function<InternalRow, Integer> bucketGetter() {
+        // InternalRow 中表示桶字段的 getter.
         return row -> row.getInt(3);
     }
 
     public static Function<InternalRow, Integer> totalBucketGetter() {
+        // InternalRow 中表示桶总数字段的 getter.
         return row -> row.getInt(4);
     }
 }

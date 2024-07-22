@@ -24,7 +24,9 @@ import org.apache.paimon.operation.AbstractFileStoreScan;
 import javax.annotation.concurrent.ThreadSafe;
 
 /**
- * Filter for manifest cache, this is used in {@link AbstractFileStoreScan} for improving cache
+ * 用于决定一个 ManifestEntru 是否需要被缓存.
+ *
+ * <p>Filter for manifest cache, this is used in {@link AbstractFileStoreScan} for improving cache
  * utilization. NOTE: Please use this interface with caution and make sure that only filtered data
  * is required, otherwise it will cause correctness issues.
  */

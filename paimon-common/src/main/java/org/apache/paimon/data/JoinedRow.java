@@ -26,7 +26,10 @@ import javax.annotation.Nullable;
 import java.util.Objects;
 
 /**
- * An implementation of {@link InternalRow} which is backed by two concatenated {@link InternalRow}.
+ * InternalRow 的子类，用于合并表示两个 {@link InternalRow}.
+ *
+ * <p>An implementation of {@link InternalRow} which is backed by two concatenated {@link
+ * InternalRow}.
  *
  * <p>This implementation is mutable to allow for performant changes in hot code paths.
  *

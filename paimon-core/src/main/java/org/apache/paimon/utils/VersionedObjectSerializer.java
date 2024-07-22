@@ -28,7 +28,11 @@ import org.apache.paimon.types.RowType;
 import java.util.ArrayList;
 import java.util.List;
 
-/** A {@link ObjectSerializer} for versioned serialization. */
+/**
+ * ObjectSerializer 的子类，用于序列化指定版本的对象.
+ *
+ * <p>A {@link ObjectSerializer} for versioned serialization.
+ */
 public abstract class VersionedObjectSerializer<T> extends ObjectSerializer<T> {
 
     private static final long serialVersionUID = 1L;
@@ -58,11 +62,13 @@ public abstract class VersionedObjectSerializer<T> extends ObjectSerializer<T> {
 
     @Override
     public final InternalRow toRow(T record) {
+        // 返回一个 JoinedRow，包含版本号及数据本身.
         return new JoinedRow().replace(GenericRow.of(getVersion()), convertTo(record));
     }
 
     @Override
     public final T fromRow(InternalRow row) {
+        // 从一个包含版本号的 InternalRow 中反序列化出指定版本的对象.
         return convertFrom(row.getInt(0), new OffsetRow(row.getFieldCount() - 1, 1).replace(row));
     }
 }

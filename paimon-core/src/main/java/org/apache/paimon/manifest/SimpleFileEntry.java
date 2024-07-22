@@ -24,7 +24,11 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-/** A simple {@link FileEntry} only contains identifier and min max key. */
+/**
+ * ManifestEntry 的简化版本，包含更少的信息（减少内存占用，缓解 OOM）.
+ *
+ * <p>A simple {@link FileEntry} only contains identifier and min max key.
+ */
 public class SimpleFileEntry implements FileEntry {
 
     private final FileKind kind;
@@ -53,6 +57,7 @@ public class SimpleFileEntry implements FileEntry {
     }
 
     public static SimpleFileEntry from(ManifestEntry entry) {
+        // 从 ManifestEntry 转换而来
         return new SimpleFileEntry(
                 entry.kind(),
                 entry.partition(),
@@ -64,6 +69,7 @@ public class SimpleFileEntry implements FileEntry {
     }
 
     public static List<SimpleFileEntry> from(List<ManifestEntry> entries) {
+        // 批量转换 ManifestEntry
         return entries.stream().map(SimpleFileEntry::from).collect(Collectors.toList());
     }
 

@@ -29,7 +29,11 @@ import static org.apache.paimon.utils.InternalRowUtils.toStringArrayData;
 import static org.apache.paimon.utils.SerializationUtils.deserializeBinaryRow;
 import static org.apache.paimon.utils.SerializationUtils.serializeBinaryRow;
 
-/** Serializer for {@link DataFileMeta}. */
+/**
+ * 序列化 DataFileMeta.
+ *
+ * <p>Serializer for {@link DataFileMeta}.
+ */
 public class DataFileMetaSerializer extends ObjectSerializer<DataFileMeta> {
 
     private static final long serialVersionUID = 1L;
