@@ -400,10 +400,10 @@ public class PartialUpdateMergeFunction implements MergeFunction<KeyValue> {
 
     private static class SequenceGenerator {
 
-        private final int index;
+        private final int index; // sequence field index
 
-        private final Generator generator;
-        private final DataType fieldType;
+        private final Generator generator; // 用于生成 sequence，sequence 是个 long 值.
+        private final DataType fieldType; // sequence field 类型
 
         private SequenceGenerator(String field, RowType rowType) {
             index = rowType.getFieldNames().indexOf(field);
@@ -414,6 +414,7 @@ public class PartialUpdateMergeFunction implements MergeFunction<KeyValue> {
                                 field, rowType));
             }
             fieldType = rowType.getTypeAt(index);
+            // 根据类型生成 Generator.
             generator = fieldType.accept(new SequenceGeneratorVisitor());
         }
 
@@ -441,6 +442,7 @@ public class PartialUpdateMergeFunction implements MergeFunction<KeyValue> {
         }
 
         private interface Generator {
+            // 获取 InternalRow 中的 sequence field，生成 long 类型 sequence.
             long generate(InternalRow row, int i);
 
             @Nullable
@@ -465,11 +467,13 @@ public class PartialUpdateMergeFunction implements MergeFunction<KeyValue> {
             }
 
             private Generator stringGenerator() {
+                // string 字段直接转换为数字作为 sequence.
                 return (row, i) -> Long.parseLong(row.getString(i).toString());
             }
 
             @Override
             public Generator visit(DecimalType decimalType) {
+                // decimal 字段向下取长整型作为 sequence.
                 return (row, i) ->
                         InternalRowUtils.castToIntegral(
                                 row.getDecimal(
@@ -478,11 +482,13 @@ public class PartialUpdateMergeFunction implements MergeFunction<KeyValue> {
 
             @Override
             public Generator visit(TinyIntType tinyIntType) {
+                // tiny int 作为 sequence.
                 return InternalRow::getByte;
             }
 
             @Override
             public Generator visit(SmallIntType smallIntType) {
+                // small int 作为 sequence.
                 return InternalRow::getShort;
             }
 
@@ -498,27 +504,32 @@ public class PartialUpdateMergeFunction implements MergeFunction<KeyValue> {
 
             @Override
             public Generator visit(FloatType floatType) {
+                // float 向下取 long 作为 sequence.
                 return (row, i) -> (long) row.getFloat(i);
             }
 
             @Override
             public Generator visit(DoubleType doubleType) {
+                // double 向下取 long 作为 sequence.
                 return (row, i) -> (long) row.getDouble(i);
             }
 
             @Override
             public Generator visit(DateType dateType) {
+                // date 类型存储的是整数
                 return InternalRow::getInt;
             }
 
             @Override
             public Generator visit(TimestampType timestampType) {
+                // Timestamp 类型转换为毫秒值作为 sequence.
                 return (row, i) ->
                         row.getTimestamp(i, timestampType.getPrecision()).getMillisecond();
             }
 
             @Override
             public Generator visit(LocalZonedTimestampType localZonedTimestampType) {
+                // Timestamp 类型转换为毫秒值作为 sequence.
                 return (row, i) ->
                         row.getTimestamp(i, localZonedTimestampType.getPrecision())
                                 .getMillisecond();

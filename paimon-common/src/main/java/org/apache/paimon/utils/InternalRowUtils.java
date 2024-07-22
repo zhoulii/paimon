@@ -211,6 +211,7 @@ public class InternalRowUtils {
     }
 
     public static long castToIntegral(Decimal dec) {
+        // 将 Decimal 向下取长整型
         BigDecimal bd = dec.toBigDecimal();
         // rounding down. This is consistent with float=>int,
         // and consistent with SQLServer, Spark.

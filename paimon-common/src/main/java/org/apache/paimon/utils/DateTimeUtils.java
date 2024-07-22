@@ -96,7 +96,9 @@ public class DateTimeUtils {
     }
 
     /**
-     * Converts the Java type used for UDF parameters of SQL DATE type ({@link java.sql.Date}) to
+     * 将 Date 类型转换为整型，表示距 1970-01-01 的天数.
+     *
+     * <p>Converts the Java type used for UDF parameters of SQL DATE type ({@link java.sql.Date}) to
      * internal representation (int).
      */
     public static int toInternal(java.sql.Date date) {

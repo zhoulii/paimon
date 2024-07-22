@@ -21,7 +21,9 @@ package org.apache.paimon.types;
 import org.apache.paimon.annotation.Public;
 
 /**
- * Implementation of {@link DataTypeVisitor} that redirects all calls to {@link
+ * DataTypeVisitor 的子类，重定向所有调用到 {@link DataTypeDefaultVisitor#defaultMethod(DataType)}.
+ *
+ * <p>Implementation of {@link DataTypeVisitor} that redirects all calls to {@link
  * DataTypeDefaultVisitor#defaultMethod(DataType)}.
  *
  * @since 0.4.0

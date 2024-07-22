@@ -23,7 +23,9 @@ import org.apache.paimon.annotation.Public;
 import java.util.Objects;
 
 /**
- * Data type of a timestamp WITHOUT time zone consisting of {@code year-month-day
+ * 时间戳类型，可设置精度为 0~9，不支持类似于 23:59:60、23:59:61 这样的越界类型.
+ *
+ * <p>Data type of a timestamp WITHOUT time zone consisting of {@code year-month-day
  * hour:minute:second[.fractional]} with up to nanosecond precision and values ranging from {@code
  * 0000-01-01 00:00:00.000000000} to {@code 9999-12-31 23:59:59.999999999}. Compared to the SQL
  * standard, leap seconds (23:59:60 and 23:59:61) are not supported as the semantics are closer to
