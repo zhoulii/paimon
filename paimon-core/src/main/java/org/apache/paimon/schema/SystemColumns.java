@@ -21,7 +21,11 @@ package org.apache.paimon.schema;
 import java.util.Arrays;
 import java.util.List;
 
-/** System columns for key value store. */
+/**
+ * 键值存储时的系统列，相当于额外的信息.
+ *
+ * <p>System columns for key value store.
+ */
 public class SystemColumns {
 
     /** System field names. */

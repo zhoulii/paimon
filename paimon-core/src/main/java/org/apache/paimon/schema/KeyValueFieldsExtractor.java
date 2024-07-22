@@ -25,7 +25,11 @@ import javax.annotation.concurrent.ThreadSafe;
 import java.io.Serializable;
 import java.util.List;
 
-/** Extractor of schema for different tables. */
+/**
+ * 提取 key DataField 和 value DataField.
+ *
+ * <p>Extractor of schema for different tables.
+ */
 @ThreadSafe
 public interface KeyValueFieldsExtractor extends Serializable {
 

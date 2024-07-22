@@ -75,7 +75,11 @@ public class PrimaryKeyTableUtils {
         }
     }
 
-    /** Primary key fields extractor. */
+    /**
+     * 提取 key field.
+     *
+     * <p>Primary key fields extractor.
+     */
     public static class PrimaryKeyFieldsExtractor implements KeyValueFieldsExtractor {
 
         private static final long serialVersionUID = 1L;
@@ -86,11 +90,13 @@ public class PrimaryKeyTableUtils {
 
         @Override
         public List<DataField> keyFields(TableSchema schema) {
+            // 提取 key field 并修改名称，加前缀 _KEY_
             return addKeyNamePrefix(schema.trimmedPrimaryKeysFields());
         }
 
         @Override
         public List<DataField> valueFields(TableSchema schema) {
+            // 返回所有字段
             return schema.fields();
         }
     }

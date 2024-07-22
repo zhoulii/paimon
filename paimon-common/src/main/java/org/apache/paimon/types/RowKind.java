@@ -21,7 +21,9 @@ package org.apache.paimon.types;
 import org.apache.paimon.annotation.Public;
 
 /**
- * Lists all kinds of changes that a row can describe in a changelog.
+ * changelog 中一个 row 的 change kind.
+ *
+ * <p>Lists all kinds of changes that a row can describe in a changelog.
  *
  * @since 0.4.0
  */
@@ -102,7 +104,11 @@ public enum RowKind {
         return this == RowKind.UPDATE_BEFORE || this == RowKind.DELETE;
     }
 
-    /** Is {@link #INSERT} or {@link #UPDATE_AFTER}. */
+    /**
+     * 是不是添加一行？
+     *
+     * <p>Is {@link #INSERT} or {@link #UPDATE_AFTER}.
+     */
     public boolean isAdd() {
         return this == RowKind.INSERT || this == RowKind.UPDATE_AFTER;
     }

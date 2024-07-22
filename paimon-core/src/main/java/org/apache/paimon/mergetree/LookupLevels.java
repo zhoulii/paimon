@@ -244,7 +244,11 @@ public class LookupLevels<T> implements Levels.DropFileCallback, Closeable {
         }
     }
 
-    /** Processor to process value. */
+    /**
+     * 自定义 Value 处理器.
+     *
+     * <p>Processor to process value.
+     */
     public interface ValueProcessor<T> {
 
         boolean withPosition();
@@ -277,22 +281,27 @@ public class LookupLevels<T> implements Levels.DropFileCallback, Closeable {
             byte[] vBytes = valueSerializer.serializeToBytes(kv.value());
             byte[] bytes = new byte[vBytes.length + 8 + 1];
             MemorySegment segment = MemorySegment.wrap(bytes);
-            segment.put(0, vBytes);
-            segment.putLong(bytes.length - 9, kv.sequenceNumber());
-            segment.put(bytes.length - 1, kv.valueKind().toByteValue());
+            segment.put(0, vBytes); // 序列化 value
+            segment.putLong(bytes.length - 9, kv.sequenceNumber()); // 序列化 sequence
+            segment.put(bytes.length - 1, kv.valueKind().toByteValue()); // 序列化 rowKind
             return bytes;
         }
 
         @Override
         public KeyValue readFromDisk(InternalRow key, int level, byte[] bytes, String fileName) {
             InternalRow value = valueSerializer.deserialize(bytes);
-            long sequenceNumber = MemorySegment.wrap(bytes).getLong(bytes.length - 9);
-            RowKind rowKind = RowKind.fromByteValue(bytes[bytes.length - 1]);
+            long sequenceNumber =
+                    MemorySegment.wrap(bytes).getLong(bytes.length - 9); // 反序列化 sequence
+            RowKind rowKind = RowKind.fromByteValue(bytes[bytes.length - 1]); // 反序列化 rowKind
             return new KeyValue().replace(key, sequenceNumber, rowKind, value).setLevel(level);
         }
     }
 
-    /** A {@link ValueProcessor} to return {@link Boolean} only. */
+    /**
+     * ContainsValueProcessor 并不会真正的读取数据，readFromDisk 直接返回 true，表示包含的意思.
+     *
+     * <p>A {@link ValueProcessor} to return {@link Boolean} only.
+     */
     public static class ContainsValueProcessor implements ValueProcessor<Boolean> {
 
         private static final byte[] EMPTY_BYTES = new byte[0];
@@ -313,10 +322,14 @@ public class LookupLevels<T> implements Levels.DropFileCallback, Closeable {
         }
     }
 
-    /** A {@link ValueProcessor} to return {@link PositionedKeyValue}. */
+    /**
+     * 对 value 做序列化、反序列化，包含 row 在文化中的行号信息.
+     *
+     * <p>A {@link ValueProcessor} to return {@link PositionedKeyValue}.
+     */
     public static class PositionedKeyValueProcessor implements ValueProcessor<PositionedKeyValue> {
-        private final boolean persistValue;
-        private final RowCompactedSerializer valueSerializer;
+        private final boolean persistValue; // 是否持久化 value，还是只持久化行号
+        private final RowCompactedSerializer valueSerializer; // value 序列化器
 
         public PositionedKeyValueProcessor(RowType valueType, boolean persistValue) {
             this.persistValue = persistValue;
@@ -340,14 +353,14 @@ public class LookupLevels<T> implements Levels.DropFileCallback, Closeable {
                 byte[] bytes = new byte[vBytes.length + 8 + 8 + 1];
                 MemorySegment segment = MemorySegment.wrap(bytes);
                 segment.put(0, vBytes);
-                segment.putLong(bytes.length - 17, rowPosition);
+                segment.putLong(bytes.length - 17, rowPosition); // 序列化包含行位置信息
                 segment.putLong(bytes.length - 9, kv.sequenceNumber());
                 segment.put(bytes.length - 1, kv.valueKind().toByteValue());
                 return bytes;
             } else {
-                byte[] bytes = new byte[MAX_VAR_LONG_SIZE];
+                byte[] bytes = new byte[MAX_VAR_LONG_SIZE]; // 下一行方法将 long 类型最多编码成 9 个字节
                 int len = encodeLong(bytes, rowPosition);
-                return Arrays.copyOf(bytes, len);
+                return Arrays.copyOf(bytes, len); // 复制出来的字节数组实际上就表示 rowPosition
             }
         }
 
@@ -357,7 +370,7 @@ public class LookupLevels<T> implements Levels.DropFileCallback, Closeable {
             if (persistValue) {
                 InternalRow value = valueSerializer.deserialize(bytes);
                 MemorySegment segment = MemorySegment.wrap(bytes);
-                long rowPosition = segment.getLong(bytes.length - 17);
+                long rowPosition = segment.getLong(bytes.length - 17); // 反序列化行号
                 long sequenceNumber = segment.getLong(bytes.length - 9);
                 RowKind rowKind = RowKind.fromByteValue(bytes[bytes.length - 1]);
                 return new PositionedKeyValue(
@@ -365,13 +378,17 @@ public class LookupLevels<T> implements Levels.DropFileCallback, Closeable {
                         fileName,
                         rowPosition);
             } else {
-                long rowPosition = decodeLong(bytes, 0);
+                long rowPosition = decodeLong(bytes, 0); // 只反序列化行号
                 return new PositionedKeyValue(null, fileName, rowPosition);
             }
         }
     }
 
-    /** {@link KeyValue} with file name and row position for DeletionVector. */
+    /**
+     * KeyValue 的包装，包含文件名、文件中的行号，用于 Deletion Vector.
+     *
+     * <p>{@link KeyValue} with file name and row position for DeletionVector.
+     */
     public static class PositionedKeyValue {
         private final @Nullable KeyValue keyValue;
         private final String fileName;

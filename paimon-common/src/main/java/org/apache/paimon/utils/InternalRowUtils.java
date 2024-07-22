@@ -232,7 +232,7 @@ public class InternalRowUtils {
         InternalRow.FieldGetter getter = InternalRow.createFieldGetter(dataType, index);
         if (dataType.isNullable()) {
             return getter;
-        } else {
+        } else { // 支持获取 none null DataType 类型值时返回 null
             return row -> {
                 if (row.isNullAt(index)) {
                     return null;

@@ -37,16 +37,16 @@ public class KeyValueSerializer extends ObjectSerializer<KeyValue> {
 
     private final int keyArity;
 
-    private final GenericRow reusedMeta;
-    private final JoinedRow reusedKeyWithMeta;
-    private final JoinedRow reusedRow;
+    private final GenericRow reusedMeta; // seq_value_kind_row
+    private final JoinedRow reusedKeyWithMeta; // key_row + seq_value_kind_row
+    private final JoinedRow reusedRow; // key_row_seq_value_kind_row + value_row
 
     private final OffsetRow reusedKey;
     private final OffsetRow reusedValue;
-    private final KeyValue reusedKv;
+    private final KeyValue reusedKv; // reused key value
 
     public KeyValueSerializer(RowType keyType, RowType valueType) {
-        super(KeyValue.schema(keyType, valueType));
+        super(KeyValue.schema(keyType, valueType)); // KeyValue 的 schema
 
         this.keyArity = keyType.getFieldCount();
         int valueArity = valueType.getFieldCount();
@@ -62,11 +62,13 @@ public class KeyValueSerializer extends ObjectSerializer<KeyValue> {
 
     @Override
     public InternalRow toRow(KeyValue record) {
+        // KeyValue 转换为 InternalRow
         return toRow(record.key(), record.sequenceNumber(), record.valueKind(), record.value());
     }
 
     public InternalRow toRow(
             InternalRow key, long sequenceNumber, RowKind valueKind, InternalRow value) {
+        // ((key_row, seq_value_kind_row), value_row)
         reusedMeta.setField(0, sequenceNumber);
         reusedMeta.setField(1, valueKind.toByteValue());
         return reusedRow.replace(reusedKeyWithMeta.replace(key, reusedMeta), value);
@@ -74,6 +76,7 @@ public class KeyValueSerializer extends ObjectSerializer<KeyValue> {
 
     @Override
     public KeyValue fromRow(InternalRow row) {
+        // InternalRow 转换为 KeyValue
         reusedKey.replace(row);
         reusedValue.replace(row);
         long sequenceNumber = row.getLong(keyArity);

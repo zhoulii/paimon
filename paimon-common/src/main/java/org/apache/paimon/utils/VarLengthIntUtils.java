@@ -26,7 +26,11 @@ import java.io.IOException;
  * Software Foundation (ASF) under the Apache License, Version 2.0. See the NOTICE file distributed with this work for
  * additional information regarding copyright ownership. */
 
-/** Utils for encoding int/long to var length bytes. */
+/**
+ * int/long 类型一般占用 4/8 个字节，该工具类用于将 int/long 编码为可变长度的字节数组，最大长度分别为 5/9.
+ *
+ * <p>Utils for encoding int/long to var length bytes.
+ */
 public final class VarLengthIntUtils {
 
     public static final int MAX_VAR_LONG_SIZE = 9;
@@ -49,7 +53,11 @@ public final class VarLengthIntUtils {
         return i;
     }
 
-    /** @return bytes length. */
+    /**
+     * long 类型占用 8 个字节，下面方法将 long 类型编码为可变长度的字节数组，返回字节数组长度.
+     *
+     * @return bytes length.
+     */
     public static int encodeLong(byte[] bytes, long value) {
 
         if (value < 0) {

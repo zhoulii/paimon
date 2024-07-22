@@ -38,7 +38,9 @@ import static org.apache.paimon.schema.SystemColumns.VALUE_KIND;
 import static org.apache.paimon.utils.Preconditions.checkState;
 
 /**
- * A key value, including user key, sequence number, value kind and value. This object can be
+ * 表示一个键值对. - user key - sequence number - value kind - value
+ *
+ * <p>A key value, including user key, sequence number, value kind and value. This object can be
  * reused.
  */
 public class KeyValue {
@@ -48,11 +50,11 @@ public class KeyValue {
 
     private InternalRow key;
     // determined after written into memory table or read from file
-    private long sequenceNumber;
+    private long sequenceNumber; // 写入 memory table 后确定，或者从文件读取时确定
     private RowKind valueKind;
     private InternalRow value;
     // determined after read from file
-    private int level;
+    private int level; // 读取文件后确定
 
     public KeyValue replace(InternalRow key, RowKind valueKind, InternalRow value) {
         return replace(key, UNKNOWN_SEQUENCE, valueKind, value);
@@ -96,6 +98,7 @@ public class KeyValue {
     }
 
     public boolean isAdd() {
+        // 是不是表示添加一行
         return valueKind.isAdd();
     }
 
@@ -114,6 +117,7 @@ public class KeyValue {
 
     public static RowType schema(RowType keyType, RowType valueType) {
         List<DataField> fields = new ArrayList<>(keyType.getFields());
+        // 添加两个系统列.
         fields.add(new DataField(0, SEQUENCE_NUMBER, new BigIntType(false)));
         fields.add(new DataField(1, VALUE_KIND, new TinyIntType(false)));
         fields.addAll(valueType.getFields());
@@ -121,8 +125,11 @@ public class KeyValue {
     }
 
     /**
-     * Create key-value fields, we need to add a const value to the id of value field to ensure that
-     * they are consistent when compared by field id. For example, there are two table with key
+     * 创建 KEY-VALUE 字段列表，用于 Schema Evolution. 之所以有如下的处理可参考
+     * org.apache.paimon.schema.SchemaEvolutionUtil#createIndexCastMapping 理解.
+     *
+     * <p>Create key-value fields, we need to add a const value to the id of value field to ensure
+     * that they are consistent when compared by field id. For example, there are two table with key
      * value fields as follows
      *
      * <ul>
@@ -173,6 +180,7 @@ public class KeyValue {
 
     public static int[][] project(
             int[][] keyProjection, int[][] valueProjection, int numKeyFields) {
+        // 合并 key 和 value 的 projection，再加上 sequence、value_kind
         int[][] projection = new int[keyProjection.length + 2 + valueProjection.length][];
 
         // key
@@ -182,10 +190,11 @@ public class KeyValue {
         }
 
         // seq
-        projection[keyProjection.length] = new int[] {numKeyFields};
+        projection[keyProjection.length] = new int[] {numKeyFields}; // seq 取第 numKeyFields 个字段值
 
         // value kind
-        projection[keyProjection.length + 1] = new int[] {numKeyFields + 1};
+        projection[keyProjection.length + 1] =
+                new int[] {numKeyFields + 1}; // seq 取第 numKeyFields + 1 个字段值
 
         // value
         for (int i = 0; i < valueProjection.length; i++) {
@@ -220,6 +229,7 @@ public class KeyValue {
     }
 
     public static String rowDataToString(InternalRow row, RowType type) {
+        // 将 InternalRow 转换为 String
         return IntStream.range(0, type.getFieldCount())
                 .mapToObj(
                         i ->

@@ -20,7 +20,11 @@ package org.apache.paimon.utils;
 
 import java.io.IOException;
 
-/** An iterator for Key and Value. */
+/**
+ * 无效代码.
+ *
+ * <p>An iterator for Key and Value.
+ */
 public interface KeyValueIterator<K, V> {
 
     boolean advanceNext() throws IOException;
