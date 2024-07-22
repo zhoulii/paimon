@@ -30,8 +30,10 @@ import org.apache.paimon.types.RowKind;
 import java.util.Arrays;
 
 /**
- * An implementation of {@link InternalRow} which provides a projected view of the underlying {@link
- * InternalRow}.
+ * ProjectedRow 是 InternalRow 的一个视图，表示 InternalRow 的一个子集，可以减少字段数量，并重新排序.
+ *
+ * <p>An implementation of {@link InternalRow} which provides a projected view of the underlying
+ * {@link InternalRow}.
  *
  * <p>Projection includes both reducing the accessible fields and reordering them.
  *
@@ -39,6 +41,7 @@ import java.util.Arrays;
  */
 public class ProjectedRow implements InternalRow {
 
+    // 下标是字段在 ProjectedRow 中的位置，value 表示字段在原始 InternalRow 中的位置
     protected final int[] indexMapping;
 
     protected InternalRow row;
@@ -176,8 +179,10 @@ public class ProjectedRow implements InternalRow {
     }
 
     /**
-     * Like {@link #from(int[])}, but throws {@link IllegalArgumentException} if the provided {@code
-     * projection} array contains nested projections, which are not supported by {@link
+     * 指定投影字段，创建 ProjectedRow，投影字段可以对原始 row 字段重排序，不支持嵌套式 projection.
+     *
+     * <p>Like {@link #from(int[])}, but throws {@link IllegalArgumentException} if the provided
+     * {@code projection} array contains nested projections, which are not supported by {@link
      * ProjectedRow}.
      *
      * <p>The array represents the mapping of the fields of the original {@link DataType}, including
@@ -202,7 +207,9 @@ public class ProjectedRow implements InternalRow {
     }
 
     /**
-     * Create an empty {@link ProjectedRow} starting from a {@code projection} array.
+     * 指定投影字段，创建 ProjectedRow，投影字段可以对原始 row 字段重排序.
+     *
+     * <p>Create an empty {@link ProjectedRow} starting from a {@code projection} array.
      *
      * <p>The array represents the mapping of the fields of the original {@link DataType}. For
      * example, {@code [0, 2, 1]} specifies to include in the following order the 1st field, the 3rd
@@ -216,7 +223,9 @@ public class ProjectedRow implements InternalRow {
     }
 
     /**
-     * Create an empty {@link ProjectedRow} starting from a {@link Projection}.
+     * 根据指定 Projection，创建 ProjectedRow. 这里的 Projection 是一个非 nested 类型.
+     *
+     * <p>Create an empty {@link ProjectedRow} starting from a {@link Projection}.
      *
      * <p>Throws {@link IllegalStateException} if the provided {@code projection} array contains
      * nested projections, which are not supported by {@link ProjectedRow}.

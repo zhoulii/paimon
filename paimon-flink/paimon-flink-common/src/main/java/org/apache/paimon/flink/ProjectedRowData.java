@@ -31,7 +31,9 @@ import org.apache.flink.types.RowKind;
 import java.util.Arrays;
 
 /**
- * An implementation of {@link RowData} which provides a projected view of the underlying {@link
+ * 和 org.apache.paimon.utils.ProjectedRow 一个意思.
+ *
+ * <p>An implementation of {@link RowData} which provides a projected view of the underlying {@link
  * RowData}.
  *
  * <p>Projection includes both reducing the accessible fields and reordering them.

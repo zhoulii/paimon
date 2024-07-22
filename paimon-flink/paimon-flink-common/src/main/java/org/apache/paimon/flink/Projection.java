@@ -28,7 +28,9 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * {@link Projection} represents a list of (possibly nested) indexes that can be used to project
+ * 和 org.apache.paimon.utils.Projection 一个意思.
+ *
+ * <p>{@link Projection} represents a list of (possibly nested) indexes that can be used to project
  * data types. A row projection includes both reducing the accessible fields and reordering them.
  */
 public abstract class Projection {

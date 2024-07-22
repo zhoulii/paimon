@@ -21,7 +21,11 @@ package org.apache.paimon.codegen;
 import org.apache.paimon.data.BinaryRow;
 import org.apache.paimon.data.InternalRow;
 
-/** Interface for code generated projection, which will map a RowData to another BinaryRowData. */
+/**
+ * 用于 codegen 生成 projection 的接口，用于将一个 InternalRow 转换为另一个 BinaryRow。
+ *
+ * <p>Interface for code generated projection, which will map a RowData to another BinaryRowData.
+ */
 public interface Projection {
 
     BinaryRow apply(InternalRow row);

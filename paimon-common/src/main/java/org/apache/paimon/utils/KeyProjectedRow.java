@@ -28,7 +28,11 @@ import org.apache.paimon.types.RowKind;
 
 import java.util.Arrays;
 
-/** A {@link InternalRow} to project key fields with {@link RowKind#INSERT}. */
+/**
+ * 和 ProjectedRow 的区别在于 RowKind 是 INSERT 类型，不支持修改，用于投影 key 字段.
+ *
+ * <p>A {@link InternalRow} to project key fields with {@link RowKind#INSERT}.
+ */
 public class KeyProjectedRow implements InternalRow {
 
     private final int[] indexMapping;

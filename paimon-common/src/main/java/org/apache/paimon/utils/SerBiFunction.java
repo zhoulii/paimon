@@ -21,6 +21,10 @@ package org.apache.paimon.utils;
 import java.io.Serializable;
 import java.util.function.BiFunction;
 
-/** A {@link BiFunction} that is also {@link Serializable}. */
+/**
+ * 可序列化的 BiFunction.
+ *
+ * <p>A {@link BiFunction} that is also {@link Serializable}.
+ */
 @FunctionalInterface
 public interface SerBiFunction<T, U, R> extends BiFunction<T, U, R>, Serializable {}

@@ -31,13 +31,17 @@ import java.util.stream.IntStream;
 
 import static org.apache.paimon.data.InternalRow.createFieldGetter;
 
-/** Project {@link BinaryRow} fields into {@link InternalRow}. */
+/**
+ * 合并一个 InternalRow 和投影 BinaryRow，生成一个新的 InternalRow.
+ *
+ * <p>Project {@link BinaryRow} fields into {@link InternalRow}.
+ */
 public class ProjectToRowFunction implements SerBiFunction<InternalRow, BinaryRow, InternalRow> {
 
-    private final InternalRow.FieldGetter[] fieldGetters;
+    private final InternalRow.FieldGetter[] fieldGetters; // 获取所有字段
 
-    private final Map<Integer, Integer> projectMapping;
-    private final InternalRow.FieldGetter[] projectGetters;
+    private final Map<Integer, Integer> projectMapping; // 原始字段到投影字段映射
+    private final InternalRow.FieldGetter[] projectGetters; // 获取投影字段
 
     public ProjectToRowFunction(RowType rowType, List<String> projectFields) {
         DataType[] types = rowType.getFieldTypes().toArray(new DataType[0]);
@@ -62,6 +66,7 @@ public class ProjectToRowFunction implements SerBiFunction<InternalRow, BinaryRo
 
     @Override
     public InternalRow apply(InternalRow input, BinaryRow project) {
+        // 合并 input 和 project，非投影字段取 input，投影字段取 project
         GenericRow newRow = new GenericRow(fieldGetters.length);
         for (int i = 0; i < fieldGetters.length; i++) {
             Object field =

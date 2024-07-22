@@ -36,11 +36,19 @@ public interface MergeFunctionFactory<T> extends Serializable {
         return new AdjustedProjection(projection, null);
     }
 
-    /** Result of adjusted projection. */
+    /**
+     * 调整后的 projection. 可参考
+     * org.apache.paimon.mergetree.compact.PartialUpdateMergeFunction.Factory#adjustProjection 来理解.
+     *
+     * <p>Result of adjusted projection.
+     */
     class AdjustedProjection {
 
+        // 中间层需要处理的字段索引，可能在 outer projection 上加了一些字段
+        // 如加入一些 sequence 字段
         @Nullable public final int[][] pushdownProjection;
 
+        // 真正需要的结果字段索引
         @Nullable public final int[][] outerProjection;
 
         public AdjustedProjection(int[][] pushdownProjection, int[][] outerProjection) {
