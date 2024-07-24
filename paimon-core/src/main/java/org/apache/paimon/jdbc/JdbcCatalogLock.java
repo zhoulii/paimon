@@ -50,6 +50,7 @@ public class JdbcCatalogLock implements CatalogLock {
 
     @Override
     public <T> T runWithLock(String database, String table, Callable<T> callable) throws Exception {
+        // 表级别锁
         String lockUniqueName = String.format("%s.%s.%s", catalogKey, database, table);
         lock(lockUniqueName);
         try {
@@ -60,6 +61,7 @@ public class JdbcCatalogLock implements CatalogLock {
     }
 
     private void lock(String lockUniqueName) throws SQLException, InterruptedException {
+        // 获取表级锁
         boolean lock = JdbcUtils.acquire(connections, lockUniqueName, acquireTimeout);
         long nextSleep = 50;
         long startRetry = System.currentTimeMillis();

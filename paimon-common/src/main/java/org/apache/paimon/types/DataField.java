@@ -116,6 +116,7 @@ public final class DataField implements Serializable {
     }
 
     public void serializeJson(JsonGenerator generator) throws IOException {
+        // 写出 DataField 对象为 JSON
         generator.writeStartObject();
         generator.writeNumberField("id", id());
         generator.writeStringField("name", name());

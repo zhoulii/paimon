@@ -507,7 +507,7 @@ public class CoreOptions implements Serializable {
                                     + " the sequence number determines which data is the most recent.");
 
     @Immutable
-    public static final ConfigOption<String> ROWKIND_FIELD =
+    public static final ConfigOption<String> ROWKIND_FIELD = // 用某个字段表示主键表的 row kind·
             key("rowkind.field")
                     .stringType()
                     .noDefaultValue()

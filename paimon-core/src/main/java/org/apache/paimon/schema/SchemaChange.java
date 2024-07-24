@@ -28,7 +28,11 @@ import java.util.Arrays;
 import java.util.Objects;
 
 /**
- * Schema change to table.
+ * 添加、删除、重命名列等 schema 变化表示.
+ *
+ * <p>实现类有 SetOption、RemoveOption、UpdateComment、AddColumn 等.
+ *
+ * <p>Schema change to table.
  *
  * @since 0.4.0
  */
@@ -91,7 +95,11 @@ public interface SchemaChange extends Serializable {
         return new UpdateColumnPosition(move);
     }
 
-    /** A SchemaChange to set a table option. */
+    /**
+     * 设置或修改 with 参数.
+     *
+     * <p>A SchemaChange to set a table option.
+     */
     final class SetOption implements SchemaChange {
 
         private static final long serialVersionUID = 1L;
@@ -130,7 +138,11 @@ public interface SchemaChange extends Serializable {
         }
     }
 
-    /** A SchemaChange to remove a table option. */
+    /**
+     * 删除 with 参数.
+     *
+     * <p>A SchemaChange to remove a table option.
+     */
     final class RemoveOption implements SchemaChange {
 
         private static final long serialVersionUID = 1L;
@@ -261,8 +273,8 @@ public interface SchemaChange extends Serializable {
 
         private static final long serialVersionUID = 1L;
 
-        private final String fieldName;
-        private final String newName;
+        private final String fieldName; // 要修改的字段
+        private final String newName; // 新的名称
 
         private RenameColumn(String fieldName, String newName) {
             this.fieldName = fieldName;
@@ -406,7 +418,11 @@ public interface SchemaChange extends Serializable {
         }
     }
 
-    /** Represents a requested column move in a struct. */
+    /**
+     * 表示添加在最开始，还是在某个列之后.
+     *
+     * <p>Represents a requested column move in a struct.
+     */
     class Move implements Serializable {
 
         public enum MoveType {
@@ -472,7 +488,7 @@ public interface SchemaChange extends Serializable {
         private static final long serialVersionUID = 1L;
 
         private final String[] fieldNames;
-        private final boolean newNullability;
+        private final boolean newNullability; // true 表示可为 null，false 表示不可为 null
 
         public UpdateColumnNullability(String[] fieldNames, boolean newNullability) {
             this.fieldNames = fieldNames;

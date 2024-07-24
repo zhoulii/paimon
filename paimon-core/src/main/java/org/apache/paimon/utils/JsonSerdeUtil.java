@@ -161,13 +161,16 @@ public class JsonSerdeUtil {
 
     private static Module createPaimonJacksonModule() {
         SimpleModule module = new SimpleModule("Paimon");
+        // 注册 TableSchema 的序列化、反序列化器
         registerJsonObjects(
                 module, TableSchema.class, SchemaSerializer.INSTANCE, SchemaSerializer.INSTANCE);
+        // 注册 DataField 的序列化、反序列化器
         registerJsonObjects(
                 module,
                 DataField.class,
                 DataField::serializeJson,
                 DataTypeJsonParser::parseDataField);
+        // 注册 DataType 的序列化、反序列化器
         registerJsonObjects(
                 module, DataType.class, DataType::serializeJson, DataTypeJsonParser::parseDataType);
         return module;

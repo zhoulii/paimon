@@ -135,6 +135,7 @@ public final class RowType extends DataType {
 
     @Override
     public DataType copy(boolean isNullable) {
+        // 修改每个子字段的非空属性
         return new RowType(
                 isNullable, fields.stream().map(DataField::copy).collect(Collectors.toList()));
     }
@@ -251,6 +252,7 @@ public final class RowType extends DataType {
     }
 
     public static int currentHighestFieldId(List<DataField> fields) {
+        // 获取最大的 field id
         Set<Integer> fieldIds = new HashSet<>();
         new RowType(fields).collectFieldIds(fieldIds);
         return fieldIds.stream().max(Integer::compareTo).orElse(-1);

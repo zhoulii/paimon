@@ -21,7 +21,9 @@ package org.apache.paimon.casting;
 import javax.annotation.concurrent.ThreadSafe;
 
 /**
- * Interface to model a function that performs the casting of a value from one type to another.
+ * 用于转换 DataType 类型.
+ *
+ * <p>Interface to model a function that performs the casting of a value from one type to another.
  *
  * @param <IN> Input internal type
  * @param <OUT> Output internal type

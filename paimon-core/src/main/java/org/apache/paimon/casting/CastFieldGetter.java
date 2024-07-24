@@ -21,7 +21,10 @@ package org.apache.paimon.casting;
 import org.apache.paimon.data.InternalRow;
 
 /**
- * Get field value from row with given pos and cast it according to specific {@link CastExecutor}.
+ * 获取指定字段并转换类型.
+ *
+ * <p>Get field value from row with given pos and cast it according to specific {@link
+ * CastExecutor}.
  */
 public class CastFieldGetter {
     private final InternalRow.FieldGetter fieldGetter;

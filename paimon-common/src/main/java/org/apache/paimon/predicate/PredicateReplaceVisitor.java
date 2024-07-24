@@ -22,7 +22,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-/** A {@link PredicateVisitor} to replace {@link Predicate}. */
+/**
+ * 从转换结果创建一个新的 CompoundPredicate.
+ *
+ * <p>A {@link PredicateVisitor} to replace {@link Predicate}.
+ */
 public interface PredicateReplaceVisitor extends PredicateVisitor<Optional<Predicate>> {
 
     @Override

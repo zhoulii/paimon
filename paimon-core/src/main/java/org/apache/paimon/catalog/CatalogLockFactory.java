@@ -22,7 +22,11 @@ import org.apache.paimon.factories.Factory;
 
 import java.io.Serializable;
 
-/** Factory to create {@link CatalogLock}. */
+/**
+ * 不同的 Catalog 有自己的实现，用于获取 catalog 表级锁.
+ *
+ * <p>Factory to create {@link CatalogLock}.
+ */
 public interface CatalogLockFactory extends Factory, Serializable {
 
     CatalogLock createLock(CatalogLockContext context);

@@ -60,7 +60,11 @@ import java.util.Objects;
 
 import static org.apache.paimon.catalog.Catalog.SYSTEM_TABLE_SPLITTER;
 
-/** A {@link Table} for showing schemas of table. */
+/**
+ * 系统表，用于读取 schema 信息.
+ *
+ * <p>A {@link Table} for showing schemas of table.
+ */
 public class SchemasTable implements ReadonlyTable {
 
     private static final long serialVersionUID = 1L;

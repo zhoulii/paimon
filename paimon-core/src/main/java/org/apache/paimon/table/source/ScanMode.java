@@ -36,7 +36,8 @@ public enum ScanMode {
     DELTA,
 
     /**
-     * 扫描 changelog 文件.
+     * 扫描 changelog 文件，指定 changelog producer 时流读会使用这种模式. overwrite snapshot 除外，读取 overwrite snapshot
+     * 时强制使用 DELTA.
      *
      * <p>Only scan changelog files of a snapshot.
      */

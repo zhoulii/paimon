@@ -36,7 +36,11 @@ import java.util.Map;
 import static org.apache.paimon.CoreOptions.BUCKET;
 import static org.apache.paimon.schema.TableSchema.PAIMON_07_VERSION;
 
-/** A {@link JsonSerializer} for {@link TableSchema}. */
+/**
+ * 序列化、反序列化 TableSchema.
+ *
+ * <p>A {@link JsonSerializer} for {@link TableSchema}.
+ */
 public class SchemaSerializer
         implements JsonSerializer<TableSchema>, JsonDeserializer<TableSchema> {
 
@@ -44,13 +48,15 @@ public class SchemaSerializer
 
     @Override
     public void serialize(TableSchema tableSchema, JsonGenerator generator) throws IOException {
+        // JsonGenerator：写入各种字段类型，生成 JSON.
+
         generator.writeStartObject();
 
         generator.writeNumberField("version", tableSchema.version());
 
         generator.writeNumberField("id", tableSchema.id());
 
-        generator.writeArrayFieldStart("fields");
+        generator.writeArrayFieldStart("fields"); // 写入 Array Field.
         for (DataField field : tableSchema.fields()) {
             field.serializeJson(generator);
         }
@@ -58,7 +64,7 @@ public class SchemaSerializer
 
         generator.writeNumberField("highestFieldId", tableSchema.highestFieldId());
 
-        generator.writeArrayFieldStart("partitionKeys");
+        generator.writeArrayFieldStart("partitionKeys"); // 写入 Array Field.
         for (String partitionKey : tableSchema.partitionKeys()) {
             generator.writeString(partitionKey);
         }

@@ -22,7 +22,11 @@ import org.apache.paimon.casting.CastFieldGetter;
 
 import javax.annotation.Nullable;
 
-/** Class includes index mapping and cast mapping. */
+/**
+ * table field 与 data field 映射关系及转换方式.
+ *
+ * <p>Class includes index mapping and cast mapping.
+ */
 public interface IndexCastMapping {
 
     @Nullable

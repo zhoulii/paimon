@@ -38,25 +38,27 @@ import java.util.stream.Collectors;
 import static org.apache.paimon.CoreOptions.BUCKET_KEY;
 
 /**
- * Schema of a table. Unlike schema, it has more information than {@link Schema}, including schemaId
- * and fieldId.
+ * 相比 Schema，会包含更多信息，如 schemaId.
+ *
+ * <p>Schema of a table. Unlike schema, it has more information than {@link Schema}, including
+ * schemaId and fieldId.
  */
 public class TableSchema implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
-    public static final int PAIMON_07_VERSION = 1;
-    public static final int CURRENT_VERSION = 2;
+    public static final int PAIMON_07_VERSION = 1; // PAIMON 0.7 及之前使用的版本
+    public static final int CURRENT_VERSION = 2; // 当前版本
 
     // version of schema for paimon
-    private final int version;
+    private final int version; // 使用 schema 的版本号
 
-    private final long id;
+    private final long id; // schema id
 
     private final List<DataField> fields;
 
     /** Not available from fields, as some fields may have been deleted. */
-    private final int highestFieldId;
+    private final int highestFieldId; // 最大的 field id，不一定是所有字段中最大的 id，因为有可能删除了某些字段
 
     private final List<String> partitionKeys;
 
@@ -66,7 +68,7 @@ public class TableSchema implements Serializable {
 
     private final @Nullable String comment;
 
-    private final long timeMillis;
+    private final long timeMillis; // 创建时间
 
     public TableSchema(
             long id,
@@ -109,10 +111,10 @@ public class TableSchema implements Serializable {
         this.timeMillis = timeMillis;
 
         // try to trim to validate primary keys
-        trimmedPrimaryKeys();
+        trimmedPrimaryKeys(); // 验证 primary keys 不能和 partition keys 完全相同
 
         // try to validate bucket keys
-        originalBucketKeys();
+        originalBucketKeys(); // 验证 bucket-key 与 primary key 及 partition 之间的关系
     }
 
     public int version() {
@@ -144,12 +146,14 @@ public class TableSchema implements Serializable {
     }
 
     public List<String> trimmedPrimaryKeys() {
+        // trimmed primary key 表示删除分区字段的 primary key
         if (primaryKeys.size() > 0) {
             List<String> adjusted =
                     primaryKeys.stream()
                             .filter(pk -> !partitionKeys.contains(pk))
                             .collect(Collectors.toList());
 
+            // primary keys 和 partition keys 不能完全相同，否则每个分区只有一条数据
             Preconditions.checkState(
                     adjusted.size() > 0,
                     String.format(
@@ -168,6 +172,10 @@ public class TableSchema implements Serializable {
     }
 
     public List<String> bucketKeys() {
+        // 1.先取 bucket-key
+        // 2.回退为 primary key
+        // 3.回退为所有字段
+
         List<String> bucketKeys = originalBucketKeys();
         if (bucketKeys.isEmpty()) {
             bucketKeys = trimmedPrimaryKeys();
@@ -182,29 +190,35 @@ public class TableSchema implements Serializable {
         if (primaryKeys.isEmpty() || partitionKeys.isEmpty()) {
             return false;
         }
-
+        // primary key 不包含全部的 partition key，就可能发生跨分区更新
+        // 也就是同个主键肯能会分布在不同的分区
         return !primaryKeys.containsAll(partitionKeys);
     }
 
     /** Original bucket keys, maybe empty. */
     private List<String> originalBucketKeys() {
         String key = options.get(BUCKET_KEY.key());
-        if (StringUtils.isNullOrWhitespaceOnly(key)) {
+        if (StringUtils.isNullOrWhitespaceOnly(key)) { // 没有指定 bucket-key
             return Collections.emptyList();
         }
         List<String> bucketKeys = Arrays.asList(key.split(","));
-        if (!containsAll(fieldNames(), bucketKeys)) {
+        if (!containsAll(fieldNames(), bucketKeys)) { // bucket-key 必须是个表字段
             throw new RuntimeException(
                     String.format(
                             "Field names %s should contains all bucket keys %s.",
                             fieldNames(), bucketKeys));
         }
+
+        // bucket-key 不能是 partition key 中的字段，这样有可能导致数据倾斜
         if (bucketKeys.stream().anyMatch(partitionKeys::contains)) {
             throw new RuntimeException(
                     String.format(
                             "Bucket keys %s should not in partition keys %s.",
                             bucketKeys, partitionKeys));
         }
+        // 如果指定了 pk，bucket-key 则必须是主键的子集
+        // 1. bucket-key 是 pk 的超集，同个主键数据可能会划分到不同 bucket
+        // 2. pk 包含部分 bucket-key，主键相同的数据可能会划分到不同 bucket
         if (primaryKeys.size() > 0) {
             if (!containsAll(primaryKeys, bucketKeys)) {
                 throw new RuntimeException(
@@ -253,15 +267,18 @@ public class TableSchema implements Serializable {
     }
 
     public List<DataField> trimmedPrimaryKeysFields() {
+        // 获取 primary key DataField
         return projectedDataFields(trimmedPrimaryKeys());
     }
 
     public int[] projection(List<String> projectedFieldNames) {
+        // project 字段名转换为下标
         List<String> fieldNames = fieldNames();
         return projectedFieldNames.stream().mapToInt(fieldNames::indexOf).toArray();
     }
 
     private List<DataField> projectedDataFields(List<String> projectedFieldNames) {
+        // 投影 DataField
         List<String> fieldNames = fieldNames();
         return projectedFieldNames.stream()
                 .map(k -> fields.get(fieldNames.indexOf(k)))
@@ -269,6 +286,7 @@ public class TableSchema implements Serializable {
     }
 
     public RowType projectedLogicalRowType(List<String> projectedFieldNames) {
+        // project DataField 组合的 rowType
         return new RowType(projectedDataFields(projectedFieldNames));
     }
 
@@ -319,6 +337,7 @@ public class TableSchema implements Serializable {
     }
 
     public static List<DataField> newFields(RowType rowType) {
+        // 获取 RowType 对应的 DataField
         return rowType.getFields();
     }
 }

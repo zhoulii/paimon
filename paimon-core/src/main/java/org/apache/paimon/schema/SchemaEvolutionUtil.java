@@ -56,8 +56,10 @@ public class SchemaEvolutionUtil {
     private static final int NULL_FIELD_INDEX = -1;
 
     /**
-     * Create index mapping from table fields to underlying data fields. For example, the table and
-     * data fields are as follows
+     * 根据 field id 将表的字段与数据字段建立映射关系，无法.
+     *
+     * <p>Create index mapping from table fields to underlying data fields. For example, the table
+     * and data fields are as follows
      *
      * <ul>
      *   <li>table fields: 1->c, 6->b, 3->a
@@ -65,7 +67,10 @@ public class SchemaEvolutionUtil {
      * </ul>
      *
      * <p>We can get the index mapping [0, -1, 1], in which 0 is the index of table field 1->c in
-     * data fields, 1 is the index of 6->b in data fields and 1 is the index of 3->a in data fields.
+     * data fields, -1 is the index of 6->b in data fields and 1 is the index of 3->a in data
+     * fields.
+     *
+     * <p>1->c 对应 1->a、6->b 没有对应的数据字段、3->a 对应 3->c.
      *
      * <p>/// TODO should support nest index mapping when nest schema evolution is supported.
      *
@@ -101,7 +106,9 @@ public class SchemaEvolutionUtil {
     }
 
     /**
-     * Create index mapping from table projection to underlying data projection. For example, the
+     * 先做投影，再做映射.
+     *
+     * <p>Create index mapping from table projection to underlying data projection. For example, the
      * table and data fields are as follows
      *
      * <ul>
@@ -112,8 +119,8 @@ public class SchemaEvolutionUtil {
      * <p>The table and data top projections are as follows
      *
      * <ul>
-     *   <li>table projection: [0, 4, 1]
-     *   <li>data projection: [0, 2]
+     *   <li>table projection: [0, 4, 1] 1->c, 6->b, 3->a
+     *   <li>data projection: [0, 2] 1->a, 3->c
      * </ul>
      *
      * <p>We can first get fields list for table and data projections from their fields as follows
@@ -144,7 +151,11 @@ public class SchemaEvolutionUtil {
                 projectDataFields(dataProjection, dataFields));
     }
 
-    /** Create index mapping from table fields to underlying data fields. */
+    /**
+     * 建立 table field 与 data field 映射关系及转换方式.
+     *
+     * <p>Create index mapping from table fields to underlying data fields.
+     */
     public static IndexCastMapping createIndexCastMapping(
             List<DataField> tableFields, List<DataField> dataFields) {
         int[] indexMapping = createIndexMapping(tableFields, dataFields);
@@ -166,6 +177,7 @@ public class SchemaEvolutionUtil {
     }
 
     private static List<DataField> projectDataFields(int[] projection, List<DataField> dataFields) {
+        // 取投影字段
         List<DataField> projectFields = new ArrayList<>(projection.length);
         for (int index : projection) {
             projectFields.add(dataFields.get(index));
@@ -175,14 +187,16 @@ public class SchemaEvolutionUtil {
     }
 
     /**
-     * Create index mapping from table projection to data with key and value fields. We should first
-     * create table and data fields with their key/value fields, then create index mapping with
-     * their projections and fields. For example, the table and data projections and fields are as
-     * follows
+     * 保证 table seq/kind id 和 data seq/kind id 一致，给 value field 重新编号，再投影，然后建立映射转换关系.
+     *
+     * <p>Create index mapping from table projection to data with key and value fields. We should
+     * first create table and data fields with their key/value fields, then create index mapping
+     * with their projections and fields. For example, the table and data projections and fields are
+     * as follows
      *
      * <ul>
      *   <li>Table key fields: 1->ka, 3->kb, 5->kc, 6->kd; value fields: 0->a, 2->d, 4->b;
-     *       projection: [0, 2, 3, 4, 5, 7] where 0 is 1->ka, 2 is 5->kc, 3 is 5->kc, 4/5 are seq
+     *       projection: [0, 2, 3, 4, 5, 7] where 0 is 1->ka, 2 is 5->kc, 3 is 6->kd, 4/5 are seq
      *       and kind, 7 is 2->d
      *   <li>Data key fields: 1->kb, 5->ka; value fields: 2->aa, 4->f; projection: [0, 1, 2, 3, 4]
      *       where 0 is 1->kb, 1 is 5->ka, 2/3 are seq and kind, 4 is 2->aa
@@ -216,20 +230,27 @@ public class SchemaEvolutionUtil {
             int[] dataProjection,
             List<DataField> dataKeyFields,
             List<DataField> dataValueFields) {
+        // 取 tableKeyFields 与 dataKeyFields 的最大 id，目的是为了使二者的 seq、kind 字段 id 一致
+        // 目的是让 table field 与 data field 的 seq、kind 字段 id 能能根据 id 建立正确的映射关系
+        // key id 没变，建立映射关系不会有问题
+        // value id 加上一个同样的值，映射关系也不会有问题
         int maxKeyId =
                 Math.max(
                         tableKeyFields.stream().mapToInt(DataField::id).max().orElse(0),
                         dataKeyFields.stream().mapToInt(DataField::id).max().orElse(0));
-        List<DataField> tableFields =
+        List<DataField> tableFields = // 重编码 tableValueFields id
                 KeyValue.createKeyValueFields(tableKeyFields, tableValueFields, maxKeyId);
-        List<DataField> dataFields =
+        List<DataField> dataFields = // 重编码 dataValueFields id
                 KeyValue.createKeyValueFields(dataKeyFields, dataValueFields, maxKeyId);
+        // 建立映射及转换关系
         return createIndexCastMapping(tableProjection, tableFields, dataProjection, dataFields);
     }
 
     /**
-     * Create data projection from table projection. For example, the table and data fields are as
-     * follows
+     * 根据 table field 的 projection，创建 data field 的 projection.
+     *
+     * <p>Create data projection from table projection. For example, the table and data fields are
+     * as follows
      *
      * <ul>
      *   <li>table fields: 1->c, 3->a, 4->e, 5->d, 6->b
@@ -303,17 +324,17 @@ public class SchemaEvolutionUtil {
                 predicate -> {
                     DataField tableField =
                             checkNotNull(
-                                    nameToTableFields.get(predicate.fieldName()),
+                                    nameToTableFields.get(predicate.fieldName()), // 谓词对应的字段存在
                                     String.format("Find no field %s", predicate.fieldName()));
                     DataField dataField = idToDataFields.get(tableField.id());
-                    if (dataField == null) {
+                    if (dataField == null) { // 如果对应的数据字段不存在，这个谓词不需要
                         return Optional.empty();
                     }
 
                     DataType dataValueType = dataField.type().copy(true);
                     DataType predicateType = predicate.type().copy(true);
                     CastExecutor<Object, Object> castExecutor =
-                            dataValueType.equals(predicateType)
+                            dataValueType.equals(predicateType) // 谓词校验类型和数据字段类型一致，不需要转换，否则进行类型转换
                                     ? null
                                     : (CastExecutor<Object, Object>)
                                             CastExecutors.resolve(
@@ -322,7 +343,9 @@ public class SchemaEvolutionUtil {
                     // information, for example, convert double value to int. But it doesn't matter
                     // because it just for predicate push down and the data will be filtered
                     // correctly after reading.
-                    List<Object> literals =
+                    // todo 还是可能发生数据丢失的，比如 谓词是 !=3.3，转换后为 !=3，真实数据是 1，2，3，正确结果应该是全过滤出来
+                    // todo 而转换后的只会过滤出 1,2
+                    List<Object> literals = // 转换谓词常量类型
                             predicate.literals().stream()
                                     .map(v -> castExecutor == null ? v : castExecutor.cast(v))
                                     .collect(Collectors.toList());
@@ -330,7 +353,7 @@ public class SchemaEvolutionUtil {
                             new LeafPredicate(
                                     predicate.function(),
                                     dataField.type(),
-                                    indexOf(dataField, idToDataFields),
+                                    indexOf(dataField, idToDataFields), // 对第几个 data field 进行校验
                                     dataField.name(),
                                     literals));
                 };
@@ -342,6 +365,7 @@ public class SchemaEvolutionUtil {
     }
 
     private static int indexOf(DataField dataField, LinkedHashMap<Integer, DataField> dataFields) {
+        // 某个字段的列表索引号
         int index = 0;
         for (Map.Entry<Integer, DataField> entry : dataFields.entrySet()) {
             if (dataField.id() == entry.getKey()) {
@@ -355,8 +379,10 @@ public class SchemaEvolutionUtil {
     }
 
     /**
-     * Create converter mapping from table fields to underlying data fields. For example, the table
-     * and data fields are as follows
+     * 废弃代码.
+     *
+     * <p>Create converter mapping from table fields to underlying data fields. For example, the
+     * table and data fields are as follows
      *
      * <ul>
      *   <li>table fields: 1->c INT, 6->b STRING, 3->a BIGINT
@@ -405,7 +431,9 @@ public class SchemaEvolutionUtil {
     }
 
     /**
-     * Create getter and casting mapping from table fields to underlying data fields with given
+     * 创建 CastFieldGetter 用于将数据文件字段类型转换为 table schema field 对应类型.
+     *
+     * <p>Create getter and casting mapping from table fields to underlying data fields with given
      * index mapping. For example, the table and data fields are as follows
      *
      * <ul>
@@ -427,16 +455,16 @@ public class SchemaEvolutionUtil {
     private static CastFieldGetter[] createCastFieldGetterMapping(
             List<DataField> tableFields, List<DataField> dataFields, int[] indexMapping) {
         CastFieldGetter[] converterMapping = new CastFieldGetter[tableFields.size()];
-        boolean castExist = false;
+        boolean castExist = false; // 标识是否存在类型转换
         for (int i = 0; i < tableFields.size(); i++) {
             int dataIndex = indexMapping == null ? i : indexMapping[i];
-            if (dataIndex < 0) {
+            if (dataIndex < 0) { // 不存在映射关系，返回的 CastFieldGetter 会获取到 null
                 converterMapping[i] =
                         new CastFieldGetter(row -> null, CastExecutors.identityCastExecutor());
             } else {
                 DataField tableField = tableFields.get(i);
                 DataField dataField = dataFields.get(dataIndex);
-                if (dataField.type().equalsIgnoreNullable(tableField.type())) {
+                if (dataField.type().equalsIgnoreNullable(tableField.type())) { // 类型相同不需要类型转换
                     // Create getter with index i and projected row data will convert to underlying
                     // data
                     converterMapping[i] =
@@ -446,6 +474,7 @@ public class SchemaEvolutionUtil {
                                     CastExecutors.identityCastExecutor());
                 } else {
                     // TODO support column type evolution in nested type
+                    // 只支持原子类型的类型转换
                     checkState(
                             !(tableField.type() instanceof MapType
                                     || dataField.type() instanceof ArrayType
@@ -459,6 +488,7 @@ public class SchemaEvolutionUtil {
                                     InternalRowUtils.createNullCheckingFieldGetter(
                                             dataField.type(), i),
                                     checkNotNull(
+                                            // 将数据文件字段类型转换为 table schema field 对应类型
                                             CastExecutors.resolve(
                                                     dataField.type(), tableField.type())));
                     castExist = true;
@@ -466,6 +496,6 @@ public class SchemaEvolutionUtil {
             }
         }
 
-        return castExist ? converterMapping : null;
+        return castExist ? converterMapping : null; // 不需要类型转换返回 null
     }
 }

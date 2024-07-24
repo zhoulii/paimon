@@ -41,7 +41,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 /**
- * Schema of a table.
+ * 表的 schema.
+ *
+ * <p>Schema of a table.
  *
  * @since 0.4.0
  */
@@ -56,7 +58,7 @@ public class Schema {
 
     private final Map<String, String> options;
 
-    private final String comment;
+    private final String comment; // 表的注释
 
     public Schema(
             List<DataField> fields,
@@ -98,9 +100,13 @@ public class Schema {
 
     private static List<DataField> normalizeFields(
             List<DataField> fields, List<String> primaryKeys, List<String> partitionKeys) {
+        // 校验字段信息并给主键字段添加非空约束
+
         List<String> fieldNames = fields.stream().map(DataField::name).collect(Collectors.toList());
 
-        Set<String> duplicateColumns = duplicate(fieldNames);
+        Set<String> duplicateColumns = duplicate(fieldNames); // 获取重复的字段名
+
+        // 不能包含重复的字段
         Preconditions.checkState(
                 duplicateColumns.isEmpty(),
                 "Table column %s must not contain duplicate fields. Found: %s",
@@ -109,27 +115,34 @@ public class Schema {
 
         Set<String> allFields = new HashSet<>(fieldNames);
 
+        // 分区字段不能重复
         duplicateColumns = duplicate(partitionKeys);
         Preconditions.checkState(
                 duplicateColumns.isEmpty(),
                 "Partition key constraint %s must not contain duplicate columns. Found: %s",
                 partitionKeys,
                 duplicateColumns);
+
+        // 分区字段必须在表字段中
         Preconditions.checkState(
                 allFields.containsAll(partitionKeys),
                 "Table column %s should include all partition fields %s",
                 fieldNames,
                 partitionKeys);
 
-        if (primaryKeys.isEmpty()) {
+        if (primaryKeys.isEmpty()) { // primary key 为空，直接返回所有字段
             return fields;
         }
         duplicateColumns = duplicate(primaryKeys);
+
+        // 主键字段不能重复
         Preconditions.checkState(
                 duplicateColumns.isEmpty(),
                 "Primary key constraint %s must not contain duplicate columns. Found: %s",
                 primaryKeys,
                 duplicateColumns);
+
+        // 主键字段必须在表字段中
         Preconditions.checkState(
                 allFields.containsAll(primaryKeys),
                 "Table column %s should include all primary key constraint %s",
@@ -141,6 +154,7 @@ public class Schema {
         List<DataField> newFields = new ArrayList<>();
         for (DataField field : fields) {
             if (pkSet.contains(field.name()) && field.type().isNullable()) {
+                // 给主键字段添加不能为约束
                 newFields.add(
                         new DataField(
                                 field.id(),
@@ -155,6 +169,8 @@ public class Schema {
     }
 
     private List<String> normalizePrimaryKeys(List<String> primaryKeys) {
+        // option 里也可以定义 primary key
+        // 但是不能既使用 ddl 定义又使用 options 定义
         if (options.containsKey(CoreOptions.PRIMARY_KEY.key())) {
             if (!primaryKeys.isEmpty()) {
                 throw new RuntimeException(
@@ -168,6 +184,7 @@ public class Schema {
     }
 
     private List<String> normalizePartitionKeys(List<String> partitionKeys) {
+        // 类似于 normalizePrimaryKeys 方法
         if (options.containsKey(CoreOptions.PARTITION.key())) {
             if (!partitionKeys.isEmpty()) {
                 throw new RuntimeException(
@@ -181,6 +198,7 @@ public class Schema {
     }
 
     private static Set<String> duplicate(List<String> names) {
+        // 过滤出重复字段
         return names.stream()
                 .filter(name -> Collections.frequency(names, name) > 1)
                 .collect(Collectors.toSet());
@@ -241,7 +259,7 @@ public class Schema {
 
         @Nullable private String comment;
 
-        private final AtomicInteger highestFieldId = new AtomicInteger(-1);
+        private final AtomicInteger highestFieldId = new AtomicInteger(-1); // 字段最大 ID
 
         public int getHighestFieldId() {
             return highestFieldId.get();
@@ -269,6 +287,7 @@ public class Schema {
             Preconditions.checkNotNull(dataType, "Data type must not be null.");
 
             int id = highestFieldId.incrementAndGet();
+            // 目的是给 RowType 中的 DataField 重新编号，可参考 ReassignFieldId 类的注释
             DataType reassignDataType = ReassignFieldId.reassign(dataType, highestFieldId);
             columns.add(new DataField(id, columnName, reassignDataType, description));
             return this;

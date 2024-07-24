@@ -142,6 +142,7 @@ public class FileSystemCatalog extends AbstractCatalog {
 
     private SchemaManager schemaManager(Identifier identifier) {
         Path path = getDataTableLocation(identifier);
+        // 得在 with 参数里指定 lock type，才会有 lock
         CatalogLock catalogLock =
                 lockFactory()
                         .map(

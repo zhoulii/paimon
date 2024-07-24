@@ -76,6 +76,11 @@ public class SchemaEvolutionUtilTest {
     public void testCreateIndexMapping() {
         int[] indexMapping = SchemaEvolutionUtil.createIndexMapping(tableFields1, dataFields);
 
+        // new DataField(1, "c", new BigIntType())  ->  1
+        // new DataField(3, "a", new FloatType())   ->  3
+        // new DataField(5, "d", new IntType())     ->  -1
+        // new DataField(6, "e", new IntType()))    ->  -1
+
         assert indexMapping != null;
         assertThat(indexMapping.length).isEqualTo(tableFields1.size()).isEqualTo(4);
         assertThat(indexMapping[0]).isEqualTo(1);

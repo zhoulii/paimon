@@ -188,7 +188,11 @@ public class FileSystemCatalogITCase extends AbstractTestBase {
         return result;
     }
 
-    /** Lock factory for file system catalog. */
+    /**
+     * 文件系统 catalog 锁.
+     *
+     * <p>Lock factory for file system catalog.
+     */
     public static class FileSystemCatalogDummyLockFactory implements CatalogLockFactory {
 
         private static final String IDENTIFIER = "DUMMY";

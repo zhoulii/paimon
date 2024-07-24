@@ -30,14 +30,20 @@ import java.io.Serializable;
 import java.util.concurrent.Callable;
 
 /**
- * An interface that allows file store to use global lock to some transaction-related things.
+ * 用于 file store 的全局锁.
+ *
+ * <p>An interface that allows file store to use global lock to some transaction-related things.
  *
  * @since 0.4.0
  */
 @Public
 public interface Lock extends AutoCloseable {
 
-    /** Run with lock. */
+    /**
+     * 加锁执行.
+     *
+     * <p>Run with lock.
+     */
     <T> T runWithLock(Callable<T> callable) throws Exception;
 
     /** A factory to create {@link Lock}. */
@@ -111,7 +117,11 @@ public interface Lock extends AutoCloseable {
         return new CatalogLockImpl(lock, tablePath);
     }
 
-    /** A {@link Lock} to wrap {@link CatalogLock}. */
+    /**
+     * 表级别锁.
+     *
+     * <p>A {@link Lock} to wrap {@link CatalogLock}.
+     */
     class CatalogLockImpl implements Lock {
 
         private final CatalogLock catalogLock;
@@ -124,6 +134,7 @@ public interface Lock extends AutoCloseable {
 
         @Override
         public <T> T runWithLock(Callable<T> callable) throws Exception {
+            // 表级别锁
             return catalogLock.runWithLock(
                     tablePath.getDatabaseName(), tablePath.getObjectName(), callable);
         }

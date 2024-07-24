@@ -22,7 +22,11 @@ import org.apache.paimon.shade.jackson2.com.fasterxml.jackson.core.JsonGenerator
 
 import java.io.IOException;
 
-/** Json serializer for jackson. */
+/**
+ * JSON 序列化器.
+ *
+ * <p>Json serializer for jackson.
+ */
 public interface JsonSerializer<T> {
 
     void serialize(T t, JsonGenerator generator) throws IOException;

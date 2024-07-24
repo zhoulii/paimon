@@ -24,7 +24,10 @@ import java.io.Closeable;
 import java.util.concurrent.Callable;
 
 /**
- * An interface that allows source and sink to use global lock to some transaction-related things.
+ * 表级别锁.
+ *
+ * <p>An interface that allows source and sink to use global lock to some transaction-related
+ * things.
  *
  * @since 0.4.0
  */

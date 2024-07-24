@@ -36,6 +36,7 @@ import java.util.stream.Stream;
 public final class DataTypeJsonParser {
 
     public static DataField parseDataField(JsonNode json) {
+        // 从 JSON 字符串中反序列化出 DataField
         int id = json.get("id").asInt();
         String name = json.get("name").asText();
         DataType type = parseDataType(json.get("type"));
@@ -48,6 +49,7 @@ public final class DataTypeJsonParser {
     }
 
     public static DataType parseDataType(JsonNode json) {
+        // 从 JSON 字符串中反序列化出 DataType
         if (json.isTextual()) {
             return parseAtomicTypeSQLString(json.asText());
         } else if (json.isObject()) {
@@ -77,6 +79,7 @@ public final class DataTypeJsonParser {
     }
 
     public static DataType parseAtomicTypeSQLString(String string) {
+        // 通过词法分析，将类型字符串表示解析成 DataType
         List<Token> tokens = tokenize(string);
         TokenParser converter = new TokenParser(string, tokens);
         return converter.parseTokens();
@@ -84,6 +87,8 @@ public final class DataTypeJsonParser {
 
     // --------------------------------------------------------------------------------------------
     // Tokenizer
+    // 自定义了一个词法分析工具，用于将类型字符串表示解析成 Token
+    // 代码参考：org.apache.flink.table.types.logical.utils.LogicalTypeParser
     // --------------------------------------------------------------------------------------------
 
     private static final char CHAR_BEGIN_SUBTYPE = '<';

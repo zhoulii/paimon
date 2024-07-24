@@ -35,7 +35,11 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-/** The util class for merging the schemas. */
+/**
+ * 合并 Schema 的工具类.
+ *
+ * <p>The util class for merging the schemas.
+ */
 public class SchemaMergingUtils {
 
     public static TableSchema mergeSchemas(
@@ -51,6 +55,8 @@ public class SchemaMergingUtils {
                         dataFields,
                         highestFieldId,
                         allowExplicitCast);
+
+        // 只做字段合并，主键列、分区列、options、comment 都不会发生改变
         return new TableSchema(
                 currentTableSchema.id() + 1,
                 newRowType.getFields(),
@@ -66,11 +72,14 @@ public class SchemaMergingUtils {
             RowType dataSchema,
             AtomicInteger highestFieldId,
             boolean allowExplicitCast) {
+        // 合并两个 RowType
         return (RowType) merge(tableSchema, dataSchema, highestFieldId, allowExplicitCast);
     }
 
     /**
-     * Merge the base data type and the update data type if possible.
+     * 两边都存在，则更新，只存在一边，则保留.
+     *
+     * <p>Merge the base data type and the update data type if possible.
      *
      * <p>For RowType, find the fields which exists in both the base schema and the update schema,
      * and try to merge them by calling the method iteratively; remain those fields that are only in
@@ -88,12 +97,13 @@ public class SchemaMergingUtils {
             boolean allowExplicitCast) {
         // Here we try t0 merge the base0 and update0 without regard to the nullability,
         // and set the base0's nullability to the return's.
+        // 对于 RowType，会更新所有字段的非空属性
         DataType base = base0.copy(true);
         DataType update = update0.copy(true);
 
-        if (base.equals(update)) {
+        if (base.equals(update)) { // 忽略非空性，直接比较
             return base0;
-        } else if (base instanceof RowType && update instanceof RowType) {
+        } else if (base instanceof RowType && update instanceof RowType) { // merge RowType 类型
             List<DataField> baseFields = ((RowType) base).getFields();
             List<DataField> updateFields = ((RowType) update).getFields();
             Map<String, DataField> updateFieldMap =
@@ -134,7 +144,7 @@ public class SchemaMergingUtils {
 
             updatedFields.addAll(newFields);
             return new RowType(base.isNullable(), updatedFields);
-        } else if (base instanceof MapType && update instanceof MapType) {
+        } else if (base instanceof MapType && update instanceof MapType) { // merge map 类型
             return new MapType(
                     base.isNullable(),
                     merge(
@@ -147,7 +157,7 @@ public class SchemaMergingUtils {
                             ((MapType) update).getValueType(),
                             highestFieldId,
                             allowExplicitCast));
-        } else if (base instanceof ArrayType && update instanceof ArrayType) {
+        } else if (base instanceof ArrayType && update instanceof ArrayType) { // merge array 类型
             return new ArrayType(
                     base.isNullable(),
                     merge(
@@ -174,6 +184,7 @@ public class SchemaMergingUtils {
             }
         } else if (supportsDataTypesCast(base, update, allowExplicitCast)) {
             if (DataTypes.getLength(base).isPresent() && DataTypes.getLength(update).isPresent()) {
+                // 允许小的长度类型转换到大的长度类型
                 // this will check and merge types which has a `length` attribute, like BinaryType,
                 // CharType, VarBinaryType, VarCharType.
                 if (allowExplicitCast
@@ -190,6 +201,7 @@ public class SchemaMergingUtils {
                     && DataTypes.getPrecision(update).isPresent()) {
                 // this will check and merge types which has a `precision` attribute, like
                 // LocalZonedTimestampType, TimeType, TimestampType.
+                // 允许小的精度类型转换到大的精度类型
                 if (allowExplicitCast
                         || DataTypes.getPrecision(base).getAsInt()
                                 <= DataTypes.getPrecision(update).getAsInt()) {
@@ -211,6 +223,7 @@ public class SchemaMergingUtils {
 
     private static boolean supportsDataTypesCast(
             DataType sourceType, DataType targetType, boolean allowExplicitCast) {
+        // 是否支持转换到 targetType
         boolean canImplicitCast = DataTypeCasts.supportsImplicitCast(sourceType, targetType);
         boolean canExplicitCast =
                 allowExplicitCast && DataTypeCasts.supportsExplicitCast(sourceType, targetType);
@@ -218,7 +231,9 @@ public class SchemaMergingUtils {
     }
 
     private static DataField assignIdForNewField(DataField field, AtomicInteger highestFieldId) {
+        // 给 row type 的 field 分配新的 id
         DataType dataType = ReassignFieldId.reassign(field.type(), highestFieldId);
+        // 给新的字段分配 id
         return new DataField(
                 highestFieldId.incrementAndGet(), field.name(), dataType, field.description());
     }

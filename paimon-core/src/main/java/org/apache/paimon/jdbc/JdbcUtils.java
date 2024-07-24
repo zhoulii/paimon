@@ -412,6 +412,7 @@ public class JdbcUtils {
     public static boolean acquire(
             JdbcClientPool connections, String lockId, long timeoutMillSeconds)
             throws SQLException, InterruptedException {
+        // jdbc 分布式锁，绑定具体数据库，支持 SQLITE、MYSQL
         JdbcDistributedLockDialect distributedLockDialect =
                 DistributedLockDialectFactory.create(connections.getProtocol());
         // Check and clear expire lock.

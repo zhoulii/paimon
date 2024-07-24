@@ -20,7 +20,11 @@ package org.apache.paimon.types;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
-/** Reassign field id by given field id. */
+/**
+ * 目的是给 RowType 中的 DataField 重新编号. - 对于嵌套类型，逐层遍历以能修改 RowType 子 Field 编号 - 对于普通类型，直接返回原类型
+ *
+ * <p>Reassign field id by given field id.
+ */
 public class ReassignFieldId extends DataTypeDefaultVisitor<DataType> {
 
     private final AtomicInteger fieldId;
@@ -54,6 +58,7 @@ public class ReassignFieldId extends DataTypeDefaultVisitor<DataType> {
 
     @Override
     public DataType visit(RowType rowType) {
+        // 给 RowType 中的 DataField 重新编号
         RowType.Builder builder = RowType.builder(rowType.isNullable(), fieldId);
         rowType.getFields()
                 .forEach(f -> builder.field(f.name(), f.type().accept(this), f.description()));

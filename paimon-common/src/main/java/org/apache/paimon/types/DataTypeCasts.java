@@ -50,13 +50,20 @@ import static org.apache.paimon.types.DataTypeRoot.TINYINT;
 import static org.apache.paimon.types.DataTypeRoot.VARBINARY;
 import static org.apache.paimon.types.DataTypeRoot.VARCHAR;
 
-/** Utilities for casting {@link DataType}. */
+/**
+ * DataType 类型转换的工具类.
+ *
+ * <p>Utilities for casting {@link DataType}.
+ */
 public final class DataTypeCasts {
 
+    // KEY DataType 可以由哪些 Value DataType 隐式转换而来.
     private static final Map<DataTypeRoot, Set<DataTypeRoot>> implicitCastingRules;
 
+    // KEY DataType 可以由哪些 Value DataType 显式转换而来（基于对数据的了解）.
     private static final Map<DataTypeRoot, Set<DataTypeRoot>> explicitCastingRules;
 
+    // KEY DataType 与哪些 Value DataType 兼容转换而来.
     private static final Map<DataTypeRoot, Set<DataTypeRoot>> compatibleCastingRules;
 
     static {
@@ -190,7 +197,9 @@ public final class DataTypeCasts {
     }
 
     /**
-     * Returns whether the source type can be cast to the target type.
+     * 检查两个类型是否兼容.
+     *
+     * <p>Returns whether the source type can be cast to the target type.
      *
      * <p>Explicit casts correspond to the SQL cast specification and represent the logic behind a
      * {@code CAST(sourceType AS targetType)} operation. For example, it allows for converting most
@@ -227,11 +236,15 @@ public final class DataTypeCasts {
 
     private static boolean supportsCasting(
             DataType sourceType, DataType targetType, boolean allowExplicit) {
+        // 一个 nullable 类型 A 不能转换为 not null 类型 B
+        // 但如果知道 A 对应的字段不存在 null 值，这种转换也可以被允许，allowExplicit 设置为 true 则表示允许这种转换发生
         // a NOT NULL type cannot store a NULL type
         // but it might be useful to cast explicitly with knowledge about the data
         if (sourceType.isNullable() && !targetType.isNullable() && !allowExplicit) {
             return false;
         }
+
+        // 忽略非空性进行比较
         // ignore nullability during compare
         if (sourceType.copy(true).equals(targetType.copy(true))) {
             return true;
@@ -240,9 +253,12 @@ public final class DataTypeCasts {
         final DataTypeRoot sourceRoot = sourceType.getTypeRoot();
         final DataTypeRoot targetRoot = targetType.getTypeRoot();
 
+        // 是否可隐式转换
         if (implicitCastingRules.get(targetRoot).contains(sourceRoot)) {
             return true;
         }
+
+        // 是否可显式转换
         if (allowExplicit) {
             return explicitCastingRules.get(targetRoot).contains(sourceRoot);
         }
