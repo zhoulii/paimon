@@ -20,29 +20,33 @@ package org.apache.paimon.lookup.hash;
 
 import org.apache.paimon.lookup.LookupStoreFactory.Context;
 
-/** Context for {@link HashLookupStoreFactory}. */
+/**
+ * Reader、Writer 之间的上下文信息.
+ *
+ * <p>Context for {@link HashLookupStoreFactory}.
+ */
 public class HashContext implements Context {
 
-    // is bloom filter enabled
+    // is bloom filter enabled 是否启用布隆过滤器
     final boolean bloomFilterEnabled;
     // expected entries for bloom filter
     final long bloomFilterExpectedEntries;
-    // bytes for bloom filter
+    // bytes for bloom filter 布隆过滤器字节大小
     final int bloomFilterBytes;
 
-    // Key count for each key length
+    // Key count for each key length 每个 key 长度对应的 key 数量
     final int[] keyCounts;
     // Slot size for each key length
-    final int[] slotSizes;
+    final int[] slotSizes; // 每个 key 长度对应的 slot 大小
     // Number of slots for each key length
-    final int[] slots;
+    final int[] slots; // 每个 key 长度对应的 slot 数量
     // Offset of the index for different key length
-    final int[] indexOffsets;
-    // Offset of the data for different key length
+    final int[] indexOffsets; // 每个 key 长度对应的 index 偏移量（合并后的大文件中）
+    // Offset of the data for different key length 每个 key 长度对应的 data 偏移量（合并后的大文件中）
     final long[] dataOffsets;
 
-    final long uncompressBytes;
-    final long[] compressPages;
+    final long uncompressBytes; // 未压缩的字节大小
+    final long[] compressPages; // 压缩后每个 page 对应的偏移量
 
     public HashContext(
             boolean bloomFilterEnabled,
@@ -67,6 +71,7 @@ public class HashContext implements Context {
         this.compressPages = compressPages;
     }
 
+    // 设置压缩前大小以及每个 page 对应的压缩后的偏移量
     public HashContext copy(long uncompressBytes, long[] compressPages) {
         return new HashContext(
                 bloomFilterEnabled,

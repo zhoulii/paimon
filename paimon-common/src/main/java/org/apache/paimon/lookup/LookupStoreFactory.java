@@ -29,8 +29,12 @@ import java.io.IOException;
 import java.util.function.Function;
 
 /**
- * A key-value store for lookup, key-value store should be single binary file written once and ready
- * to be used. This factory provide two interfaces:
+ * 用于创建 LookupStoreWriter 和 LookupStoreReader.
+ *
+ * <p>LookupStoreWriter 会重写一个 bucket 文件，只写一次. LookupStoreReader 会根据 key bytes 查找 value.
+ *
+ * <p>A key-value store for lookup, key-value store should be single binary file written once and
+ * ready to be used. This factory provide two interfaces:
  *
  * <ul>
  *   <li>Writer: written once to prepare binary file.
@@ -39,18 +43,24 @@ import java.util.function.Function;
  */
 public interface LookupStoreFactory {
 
+    // 创建 Writer 用于转写文件
     LookupStoreWriter createWriter(File file, @Nullable BloomFilter.Builder bloomFilter)
             throws IOException;
 
+    // 创建 Reader 用于查找 value
     LookupStoreReader createReader(File file, Context context) throws IOException;
 
     static Function<Long, BloomFilter.Builder> bfGenerator(Options options) {
+        // 默认没有布隆过滤器
         Function<Long, BloomFilter.Builder> bfGenerator = rowCount -> null;
+        // lookup 文件是否开启布隆过滤器
         if (options.get(CoreOptions.LOOKUP_CACHE_BLOOM_FILTER_ENABLED)) {
+            // 获取允许的假阳率
             double bfFpp = options.get(CoreOptions.LOOKUP_CACHE_BLOOM_FILTER_FPP);
             bfGenerator =
                     rowCount -> {
                         if (rowCount > 0) {
+                            // 文件行数大于 0，创建过滤器
                             return BloomFilter.builder(rowCount, bfFpp);
                         }
                         return null;
@@ -59,6 +69,12 @@ public interface LookupStoreFactory {
         return bfGenerator;
     }
 
-    /** Context between writer and reader. */
+    /**
+     * Writer 和 Reader 之间的上下文信息.
+     *
+     * <p>记录写入时的一些元数据信息，读取时使用.
+     *
+     * <p>Context between writer and reader.
+     */
     interface Context {}
 }

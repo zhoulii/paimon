@@ -60,18 +60,22 @@ import static org.apache.paimon.utils.VarLengthIntUtils.MAX_VAR_LONG_SIZE;
 import static org.apache.paimon.utils.VarLengthIntUtils.decodeLong;
 import static org.apache.paimon.utils.VarLengthIntUtils.encodeLong;
 
-/** Provide lookup by key. */
+/**
+ * 根据 Key 快速查找 LSM.
+ *
+ * <p>Provide lookup by key.
+ */
 public class LookupLevels<T> implements Levels.DropFileCallback, Closeable {
 
-    private final Levels levels;
-    private final Comparator<InternalRow> keyComparator;
-    private final RowCompactedSerializer keySerializer;
-    private final ValueProcessor<T> valueProcessor;
-    private final IOFunction<DataFileMeta, RecordReader<KeyValue>> fileReaderFactory;
-    private final Supplier<File> localFileFactory;
+    private final Levels levels; // LSM 完整数据文件
+    private final Comparator<InternalRow> keyComparator; // key 比较器
+    private final RowCompactedSerializer keySerializer; // key 压缩序列化器
+    private final ValueProcessor<T> valueProcessor; // 如果读取、写入 value
+    private final IOFunction<DataFileMeta, RecordReader<KeyValue>> fileReaderFactory; // 读取文件
+    private final Supplier<File> localFileFactory; // 获取本地文件
     private final LookupStoreFactory lookupStoreFactory;
-    private final Cache<String, LookupFile> lookupFiles;
-    private final Function<Long, BloomFilter.Builder> bfGenerator;
+    private final Cache<String, LookupFile> lookupFiles; // 缓存文件
+    private final Function<Long, BloomFilter.Builder> bfGenerator; // 创建 BloomFilter
 
     public LookupLevels(
             Levels levels,
@@ -114,6 +118,7 @@ public class LookupLevels<T> implements Levels.DropFileCallback, Closeable {
 
     @Override
     public void notifyDropFile(String file) {
+        // 文件被删除时，清除该文件的缓存
         lookupFiles.invalidate(file);
     }
 
@@ -213,9 +218,10 @@ public class LookupLevels<T> implements Levels.DropFileCallback, Closeable {
     }
 
     private static class LookupFile implements Closeable {
+        // bucket 中的一个文件
 
         private final File localFile;
-        private final DataFileMeta remoteFile;
+        private final DataFileMeta remoteFile; // 文件描述信息
         private final LookupStoreReader reader;
 
         private boolean isClosed = false;
@@ -238,6 +244,7 @@ public class LookupLevels<T> implements Levels.DropFileCallback, Closeable {
 
         @Override
         public void close() throws IOException {
+            // 关闭 reader 删除本地文件
             reader.close();
             isClosed = true;
             FileIOUtils.deleteFileOrDirectory(localFile);
@@ -245,7 +252,7 @@ public class LookupLevels<T> implements Levels.DropFileCallback, Closeable {
     }
 
     /**
-     * 自定义 Value 处理器.
+     * 自定义 Value 处理器，怎么读取、写入 Value.
      *
      * <p>Processor to process value.
      */
@@ -262,7 +269,11 @@ public class LookupLevels<T> implements Levels.DropFileCallback, Closeable {
         T readFromDisk(InternalRow key, int level, byte[] valueBytes, String fileName);
     }
 
-    /** A {@link ValueProcessor} to return {@link KeyValue}. */
+    /**
+     * 读取写入 KeyValue 类型.
+     *
+     * <p>A {@link ValueProcessor} to return {@link KeyValue}.
+     */
     public static class KeyValueProcessor implements ValueProcessor<KeyValue> {
 
         private final RowCompactedSerializer valueSerializer;

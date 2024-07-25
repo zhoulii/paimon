@@ -30,14 +30,18 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
- * A {@link SortedRun} is a list of files sorted by their keys. The key intervals [minKey, maxKey]
- * of these files do not overlap.
+ * 一个 SortedRun 可以包含多个文件，文件所表示的 key 范围不交叉.
+ *
+ * <p>Level-0 中，一个文件就是一个 sorted run，更上层都是一层一个 SortedRun.
+ *
+ * <p>A {@link SortedRun} is a list of files sorted by their keys. The key intervals [minKey,
+ * maxKey] of these files do not overlap.
  */
 public class SortedRun {
 
-    private final List<DataFileMeta> files;
+    private final List<DataFileMeta> files; // SortedRun 对应的所有文件
 
-    private final long totalSize;
+    private final long totalSize; // 所有文件大小之和
 
     private SortedRun(List<DataFileMeta> files) {
         this.files = Collections.unmodifiableList(files);
@@ -49,21 +53,26 @@ public class SortedRun {
     }
 
     public static SortedRun empty() {
+        // 空的 SortedRun
         return new SortedRun(Collections.emptyList());
     }
 
     public static SortedRun fromSingle(DataFileMeta file) {
+        // 包含单个文件的 SortedRun
         return new SortedRun(Collections.singletonList(file));
     }
 
     public static SortedRun fromSorted(List<DataFileMeta> sortedFiles) {
+        // 包含多个文件的 SortedRun，文件已经按照 minKey 排序
         return new SortedRun(sortedFiles);
     }
 
     public static SortedRun fromUnsorted(
             List<DataFileMeta> unsortedFiles, Comparator<InternalRow> keyComparator) {
+        // 文件先根据 minKey 排序，再创建 SortedRun
         unsortedFiles.sort((o1, o2) -> keyComparator.compare(o1.minKey(), o2.minKey()));
         SortedRun run = new SortedRun(unsortedFiles);
+        // 确保文件数据不存在交叉
         run.validate(keyComparator);
         return run;
     }
@@ -86,6 +95,7 @@ public class SortedRun {
 
     @VisibleForTesting
     public void validate(Comparator<InternalRow> comparator) {
+        // 后一个文件的最小 KEY 大于前一个文件最大 KEY，以此保证文件数据不交叉
         for (int i = 1; i < files.size(); i++) {
             Preconditions.checkState(
                     comparator.compare(files.get(i).minKey(), files.get(i - 1).maxKey()) > 0,

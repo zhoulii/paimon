@@ -43,7 +43,11 @@ import java.util.Map;
  * Software Foundation (ASF) under the Apache License, Version 2.0. See the NOTICE file distributed with this work for
  * additional information regarding copyright ownership. */
 
-/** Internal read implementation for hash kv store. */
+/**
+ * 读取 HashLookupStoreWriter 写出的文件，可根据 KEY 的长度及 HASH 值快速在文件中找到对应的值.
+ *
+ * <p>Internal read implementation for hash kv store.
+ */
 public class HashLookupStoreReader
         implements LookupStoreReader, Iterable<Map.Entry<byte[], byte[]>> {
 

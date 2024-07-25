@@ -20,7 +20,11 @@ package org.apache.paimon.mergetree;
 
 import java.util.Objects;
 
-/** {@link SortedRun} with level. */
+/**
+ * SortedRun 的封装，包含 Level 信息.
+ *
+ * <p>{@link SortedRun} with level.
+ */
 public class LevelSortedRun {
 
     private final int level;

@@ -52,21 +52,28 @@ import static org.apache.paimon.types.DataTypeChecks.getScale;
 import static org.apache.paimon.utils.Preconditions.checkArgument;
 import static org.apache.paimon.utils.VarLengthIntUtils.MAX_VAR_INT_SIZE;
 
-/** A {@link Serializer} for {@link InternalRow} using compacted binary. */
+/**
+ * InternalRow 序列化器，使用二进制压缩的方式序列化，和 BinaryRow 的区别在于不使用八字节对齐，更节省内存空间及磁盘使用.
+ *
+ * <p>主要用于 HashLookupStoreFactory 及 LookupLevels.
+ *
+ * <p>A {@link Serializer} for {@link InternalRow} using compacted binary.
+ */
 public class RowCompactedSerializer implements Serializer<InternalRow> {
 
     private static final long serialVersionUID = 1L;
 
-    private final FieldGetter[] getters;
-    private final FieldWriter[] writers;
-    private final FieldReader[] readers;
+    private final FieldGetter[] getters; // 获取 InternalRow 字段方法
+    private final FieldWriter[] writers; // 写入指定 position 字段（实际上 pos 并没有使用，依赖 RowReader 顺序写入）
+    private final FieldReader[] readers; // 读取指定 position 字段（实际上 pos 并没有使用，依赖 RowReader 顺序读取）
     private final RowType rowType;
 
-    @Nullable private RowWriter rowWriter;
+    @Nullable private RowWriter rowWriter; // 顺序写入字段，写入之后 position 会移动
 
-    @Nullable private RowReader rowReader;
+    @Nullable private RowReader rowReader; // 顺序读取字段，读取之后 position 会移动
 
     public static int calculateBitSetInBytes(int arity) {
+        // 为了单字节对齐
         return (arity + 7 + HEADER_SIZE_IN_BITS) / 8;
     }
 
@@ -95,22 +102,23 @@ public class RowCompactedSerializer implements Serializer<InternalRow> {
 
     @Override
     public InternalRow copy(InternalRow from) {
+        // 深拷贝
         return deserialize(serializeToBytes(from));
     }
 
     @Override
     public void serialize(InternalRow record, DataOutputView target) throws IOException {
         byte[] bytes = serializeToBytes(record);
-        VarLengthIntUtils.encodeInt(target, bytes.length);
-        target.write(bytes);
+        VarLengthIntUtils.encodeInt(target, bytes.length); // 写出字节数组长度
+        target.write(bytes); // 写出字节数组
     }
 
     @Override
     public InternalRow deserialize(DataInputView source) throws IOException {
-        int len = VarLengthIntUtils.decodeInt(source);
+        int len = VarLengthIntUtils.decodeInt(source); // 反序列化字节数组长度
         byte[] bytes = new byte[len];
-        source.readFully(bytes);
-        return deserialize(bytes);
+        source.readFully(bytes); // 读取字节数组
+        return deserialize(bytes); // 反序列化为 InternalRow
     }
 
     @Override
@@ -135,16 +143,17 @@ public class RowCompactedSerializer implements Serializer<InternalRow> {
             rowWriter = new RowWriter(calculateBitSetInBytes(getters.length));
         }
         rowWriter.reset();
-        rowWriter.writeRowKind(record.getRowKind());
+        rowWriter.writeRowKind(record.getRowKind()); // 写出 RowKind
         for (int i = 0; i < getters.length; i++) {
             Object field = getters[i].getFieldOrNull(record);
             if (field == null) {
-                rowWriter.setNullAt(i);
+                rowWriter.setNullAt(i); // 头信息标识字段为 null
             } else {
-                writers[i].writeField(rowWriter, i, field);
+                writers[i].writeField(
+                        rowWriter, i, field); // 写出字段数据，这里的 i 并没有使用，而是依赖 RowWriter 顺序写入
             }
         }
-        return rowWriter.copyBuffer();
+        return rowWriter.copyBuffer(); // 返回字节数组
     }
 
     public InternalRow deserialize(byte[] bytes) {
@@ -155,12 +164,15 @@ public class RowCompactedSerializer implements Serializer<InternalRow> {
         GenericRow row = new GenericRow(readers.length);
         row.setRowKind(rowReader.readRowKind());
         for (int i = 0; i < readers.length; i++) {
+            // 字段为空直接设置为 null
+            // 否则顺序读取字段值，每个 reader 确定读取什么数据类型
             row.setField(i, rowReader.isNullAt(i) ? null : readers[i].readField(rowReader, i));
         }
         return row;
     }
 
     private static FieldWriter createFieldWriter(DataType fieldType) {
+        // 实际上 pos 并没有使用，依赖 RowReader 顺序写入
         final FieldWriter fieldWriter;
         switch (fieldType.getTypeRoot()) {
             case CHAR:
@@ -236,7 +248,7 @@ public class RowCompactedSerializer implements Serializer<InternalRow> {
         if (!fieldType.isNullable()) {
             return fieldWriter;
         }
-        return (writer, pos, value) -> {
+        return (writer, pos, value) -> { // field 类型 nullable，字段为 null 时，写出 null
             if (value == null) {
                 writer.setNullAt(pos);
             } else {
@@ -246,6 +258,7 @@ public class RowCompactedSerializer implements Serializer<InternalRow> {
     }
 
     private static FieldReader createFieldReader(DataType fieldType) {
+        // 实际上 pos 并没有使用，依赖 RowReader 顺序读取
         final FieldReader fieldReader;
         // ordered by type root definition
         switch (fieldType.getTypeRoot()) {
@@ -320,12 +333,15 @@ public class RowCompactedSerializer implements Serializer<InternalRow> {
     }
 
     private interface FieldReader extends Serializable {
+        // 读取某个字段
         Object readField(RowReader reader, int pos);
     }
 
     private static class RowWriter {
+        // 写入字段后 position 自动位移，null 字段只在头信息中占一位，不占用其他空间
 
         // Including RowKind and null bits.
+        // 存储 rowkind 及标识字段是否为 null
         private final int headerSizeInBytes;
 
         private byte[] buffer;
@@ -334,11 +350,11 @@ public class RowCompactedSerializer implements Serializer<InternalRow> {
 
         private RowWriter(int headerSizeInBytes) {
             this.headerSizeInBytes = headerSizeInBytes;
-            setBuffer(new byte[Math.max(64, headerSizeInBytes)]);
+            setBuffer(new byte[Math.max(64, headerSizeInBytes)]); // 初始化 buffer
             this.position = headerSizeInBytes;
         }
 
-        private void reset() {
+        private void reset() { // 清空 header
             this.position = headerSizeInBytes;
             for (int i = 0; i < headerSizeInBytes; i++) {
                 buffer[i] = 0;
@@ -346,16 +362,16 @@ public class RowCompactedSerializer implements Serializer<InternalRow> {
         }
 
         private void writeRowKind(RowKind kind) {
-            this.buffer[0] = kind.toByteValue();
+            this.buffer[0] = kind.toByteValue(); // 写入 rowkind
         }
 
-        private void setNullAt(int pos) {
+        private void setNullAt(int pos) { // 设置字段为 null，设置的是 headerSizeInBytes 中的某个位
             bitSet(segment, 0, pos + HEADER_SIZE_IN_BITS);
         }
 
         private void writeBoolean(boolean value) {
-            ensureCapacity(1);
-            segment.putBoolean(position++, value);
+            ensureCapacity(1); // 确保容量足够
+            segment.putBoolean(position++, value); // 指定 pos 写入数据，然后 pos 自动移动
         }
 
         private void writeByte(byte value) {
@@ -436,7 +452,7 @@ public class RowCompactedSerializer implements Serializer<InternalRow> {
         }
 
         private byte[] copyBuffer() {
-            return Arrays.copyOf(buffer, position);
+            return Arrays.copyOf(buffer, position); // 从 buffer 中复制长度为 position 的数据
         }
 
         private void setBuffer(byte[] buffer) {
@@ -445,12 +461,14 @@ public class RowCompactedSerializer implements Serializer<InternalRow> {
         }
 
         private void ensureCapacity(int size) {
+            // 确保 buffer 有足够的空间
             if (buffer.length - position < size) {
                 grow(size);
             }
         }
 
         private void grow(int minCapacityAdd) {
+            //  空间翻倍或扩充指定容量
             int newLen = Math.max(this.buffer.length * 2, this.buffer.length + minCapacityAdd);
             setBuffer(Arrays.copyOf(this.buffer, newLen));
         }
@@ -499,13 +517,14 @@ public class RowCompactedSerializer implements Serializer<InternalRow> {
     }
 
     private static class RowReader {
+        // 顺序读取字段，读取之后 position 会移动
 
         // Including RowKind and null bits.
         private final int headerSizeInBytes;
 
         private MemorySegment segment;
         private MemorySegment[] segments;
-        private int position;
+        private int position; // 去掉 header 之后的起始位置
 
         private RowReader(int headerSizeInBytes) {
             this.headerSizeInBytes = headerSizeInBytes;
@@ -517,11 +536,11 @@ public class RowCompactedSerializer implements Serializer<InternalRow> {
             this.position = headerSizeInBytes;
         }
 
-        private RowKind readRowKind() {
+        private RowKind readRowKind() { // row 类型
             return RowKind.fromByteValue(segment.get(0));
         }
 
-        private boolean isNullAt(int pos) {
+        private boolean isNullAt(int pos) { // 字段是否为空
             return bitGet(segment, 0, pos + HEADER_SIZE_IN_BITS);
         }
 

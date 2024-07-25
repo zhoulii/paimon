@@ -36,8 +36,11 @@ public class CompressedPageFileOutput implements PageFileOutput {
     private final byte[] page;
     private final BlockCompressor compressor;
     private final byte[] compressedPage;
+
+    // 保存每个 page 压缩后的起始偏移量
     private final List<Long> pages;
 
+    // 压缩前的字节大小
     private long uncompressBytes;
     private long position;
     private int count;
@@ -59,13 +62,14 @@ public class CompressedPageFileOutput implements PageFileOutput {
     private void flushBuffer() throws IOException {
         if (count > 0) {
             pages.add(position);
+            // page 压缩后的长度
             int len = compressor.compress(page, 0, count, compressedPage, 0);
-            // write length
+            // write length 写出长度
             out.write((len >>> 24) & 0xFF);
             out.write((len >>> 16) & 0xFF);
             out.write((len >>> 8) & 0xFF);
             out.write(len & 0xFF);
-            // write page
+            // write page 写出 page
             out.write(compressedPage, 0, len);
             count = 0;
             position += (len + 4);

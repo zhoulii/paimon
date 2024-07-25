@@ -22,7 +22,11 @@ import org.apache.paimon.lookup.LookupStoreFactory.Context;
 
 import java.io.IOException;
 
-/** Writer to prepare binary file. */
+/**
+ * 如何转写 LSM 中的一个文件，实现类 HashLookupStoreWriter 中加了详细注释.
+ *
+ * <p>Writer to prepare binary file.
+ */
 public interface LookupStoreWriter {
 
     /** Put key value to store. */

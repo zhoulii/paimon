@@ -21,7 +21,9 @@ package org.apache.paimon.utils;
 import java.io.IOException;
 
 /**
- * A functional interface for a {@link java.util.function.Function} that may throw {@link
+ * 类似 {@link java.util.function.Function}, 但可能跑出 IOException.
+ *
+ * <p>A functional interface for a {@link java.util.function.Function} that may throw {@link
  * IOException}.
  */
 @FunctionalInterface

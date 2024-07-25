@@ -769,6 +769,7 @@ public class CoreOptions implements Serializable {
                     .defaultValue(true)
                     .withDescription("Whether to enable the bloom filter for lookup cache.");
 
+    // 设置布隆过滤器的假阳率
     public static final ConfigOption<Double> LOOKUP_CACHE_BLOOM_FILTER_FPP =
             key("lookup.cache.bloom.filter.fpp")
                     .doubleType()

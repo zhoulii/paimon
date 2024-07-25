@@ -26,7 +26,9 @@ import io.airlift.compress.zstd.ZstdDecompressor;
 import javax.annotation.Nullable;
 
 /**
- * Each compression codec has an implementation of {@link BlockCompressionFactory} to create
+ * 块压缩工厂类，用于创建压缩与解压类.
+ *
+ * <p>Each compression codec has an implementation of {@link BlockCompressionFactory} to create
  * compressors and decompressors.
  */
 public interface BlockCompressionFactory {
@@ -35,7 +37,11 @@ public interface BlockCompressionFactory {
 
     BlockDecompressor getDecompressor();
 
-    /** Creates {@link BlockCompressionFactory} according to the configuration. */
+    /**
+     * 根据压缩算法创建相应的工厂类.
+     *
+     * <p>Creates {@link BlockCompressionFactory} according to the configuration.
+     */
     @Nullable
     static BlockCompressionFactory create(String compression) {
         switch (compression.toUpperCase()) {

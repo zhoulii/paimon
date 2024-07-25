@@ -26,7 +26,11 @@ import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 
-/** An interface to write bytes with pages into file. */
+/**
+ * 按 page 写出字节到文件.
+ *
+ * <p>An interface to write bytes with pages into file.
+ */
 public interface PageFileOutput extends Closeable {
 
     void write(byte[] bytes, int off, int len) throws IOException;
@@ -35,8 +39,10 @@ public interface PageFileOutput extends Closeable {
             File file, int pageSize, @Nullable BlockCompressionFactory compressionFactory)
             throws IOException {
         if (compressionFactory == null) {
+            // 不压缩写出
             return new UncompressedPageFileOutput(file);
         }
+        // 压缩写出
         return new CompressedPageFileOutput(file, pageSize, compressionFactory);
     }
 }

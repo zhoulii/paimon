@@ -18,11 +18,17 @@
 
 package org.apache.paimon.compression;
 
-/** A decompressor which decompresses a block each time. */
+/**
+ * 块解压类，一次解压一个数组.
+ *
+ * <p>A decompressor which decompresses a block each time.
+ */
 public interface BlockDecompressor {
 
     /**
-     * Decompress source data read from src and write the decompressed data to dst.
+     * 解压 src ，写到 dst.
+     *
+     * <p>Decompress source data read from src and write the decompressed data to dst.
      *
      * @param src Compressed data to read from
      * @param srcOff The start offset of compressed data

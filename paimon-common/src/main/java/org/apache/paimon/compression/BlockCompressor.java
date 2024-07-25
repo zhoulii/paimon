@@ -19,16 +19,24 @@
 package org.apache.paimon.compression;
 
 /**
- * A compressor which compresses a whole byte array each time. It will read from and write to byte
- * arrays given from the outside, reducing copy time.
+ * 块压缩类，一次压缩一个字节数组.
+ *
+ * <p>A compressor which compresses a whole byte array each time. It will read from and write to
+ * byte arrays given from the outside, reducing copy time.
  */
 public interface BlockCompressor {
 
-    /** Get the max compressed size for a given original size. */
+    /**
+     * 给一个原始字节大小，预估压缩后的最大大小.
+     *
+     * <p>Get the max compressed size for a given original size.
+     */
     int getMaxCompressedSize(int srcSize);
 
     /**
-     * Compress data read from src, and write the compressed data to dst.
+     * 压缩 src 写入到 dst.
+     *
+     * <p>Compress data read from src, and write the compressed data to dst.
      *
      * @param src Uncompressed data to read from
      * @param srcOff The start offset of uncompressed data

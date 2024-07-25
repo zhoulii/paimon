@@ -21,7 +21,11 @@ package org.apache.paimon.lookup;
 import java.io.Closeable;
 import java.io.IOException;
 
-/** Reader, lookup value by key bytes. */
+/**
+ * 如何根据 key bytes 读取 value bytes.
+ *
+ * <p>Reader, lookup value by key bytes.
+ */
 public interface LookupStoreReader extends Closeable {
 
     /** Lookup value by key. */

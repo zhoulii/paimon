@@ -36,7 +36,11 @@ public final class VarLengthIntUtils {
     public static final int MAX_VAR_LONG_SIZE = 9;
     public static final int MAX_VAR_INT_SIZE = 5;
 
-    /** @return bytes length. */
+    /**
+     * 将 long 压缩写出到输出流，返回编码后的长度.
+     *
+     * @return bytes length.
+     */
     public static int encodeLong(DataOutput os, long value) throws IOException {
 
         if (value < 0) {
