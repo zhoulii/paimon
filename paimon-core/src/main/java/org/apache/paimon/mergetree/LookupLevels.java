@@ -61,7 +61,7 @@ import static org.apache.paimon.utils.VarLengthIntUtils.decodeLong;
 import static org.apache.paimon.utils.VarLengthIntUtils.encodeLong;
 
 /**
- * 根据 Key 快速查找 LSM.
+ * 根据 Key 快速查找 LSM，对应一个完成的 LSM.
  *
  * <p>Provide lookup by key.
  */
@@ -70,12 +70,12 @@ public class LookupLevels<T> implements Levels.DropFileCallback, Closeable {
     private final Levels levels; // LSM 完整数据文件
     private final Comparator<InternalRow> keyComparator; // key 比较器
     private final RowCompactedSerializer keySerializer; // key 压缩序列化器
-    private final ValueProcessor<T> valueProcessor; // 如果读取、写入 value
+    private final ValueProcessor<T> valueProcessor; // 如何读取、写入 value
     private final IOFunction<DataFileMeta, RecordReader<KeyValue>> fileReaderFactory; // 读取文件
     private final Supplier<File> localFileFactory; // 获取本地文件
-    private final LookupStoreFactory lookupStoreFactory;
-    private final Cache<String, LookupFile> lookupFiles; // 缓存文件
-    private final Function<Long, BloomFilter.Builder> bfGenerator; // 创建 BloomFilter
+    private final LookupStoreFactory lookupStoreFactory; // 如何转换文件方便根据 key 查找、如何读取转换后的文件.
+    private final Cache<String, LookupFile> lookupFiles; // 缓存文件，Key 是文件名，value 是 LookupFile
+    private final Function<Long, BloomFilter.Builder> bfGenerator; // 用于创建 BloomFilter，输入是文件行数
 
     public LookupLevels(
             Levels levels,
@@ -85,7 +85,7 @@ public class LookupLevels<T> implements Levels.DropFileCallback, Closeable {
             IOFunction<DataFileMeta, RecordReader<KeyValue>> fileReaderFactory,
             Supplier<File> localFileFactory,
             LookupStoreFactory lookupStoreFactory,
-            Duration fileRetention,
+            Duration fileRetention, // 文件缓存时间
             MemorySize maxDiskSize,
             Function<Long, BloomFilter.Builder> bfGenerator) {
         this.levels = levels;
@@ -98,13 +98,13 @@ public class LookupLevels<T> implements Levels.DropFileCallback, Closeable {
         this.lookupFiles =
                 Caffeine.newBuilder()
                         .expireAfterAccess(fileRetention)
-                        .maximumWeight(maxDiskSize.getKibiBytes())
+                        .maximumWeight(maxDiskSize.getKibiBytes()) // 最大磁盘占用
                         .weigher(this::fileWeigh)
                         .removalListener(this::removalCallback)
-                        .executor(MoreExecutors.directExecutor())
+                        .executor(MoreExecutors.directExecutor()) // 使用当前线程执行异步任务
                         .build();
         this.bfGenerator = bfGenerator;
-        levels.addDropFileCallback(this);
+        levels.addDropFileCallback(this); // 添加删除文件回调
     }
 
     public Levels getLevels() {
@@ -124,63 +124,76 @@ public class LookupLevels<T> implements Levels.DropFileCallback, Closeable {
 
     @Nullable
     public T lookup(InternalRow key, int startLevel) throws IOException {
+        // 从某层开始查找 key
         return LookupUtils.lookup(levels, key, startLevel, this::lookup, this::lookupLevel0);
     }
 
     @Nullable
     private T lookupLevel0(InternalRow key, TreeSet<DataFileMeta> level0) throws IOException {
+        // 查找 level0 中的 key
         return LookupUtils.lookupLevel0(keyComparator, key, level0, this::lookup);
     }
 
+    // 查找某个 SortedRun 中的某个 KEY
     @Nullable
     private T lookup(InternalRow key, SortedRun level) throws IOException {
         return LookupUtils.lookup(keyComparator, key, level, this::lookup);
     }
 
+    // 查找文件中的某个 KEY
     @Nullable
     private T lookup(InternalRow key, DataFileMeta file) throws IOException {
+        // 获取缓存的 LookupFile
         LookupFile lookupFile = lookupFiles.getIfPresent(file.fileName());
 
         while (lookupFile == null || lookupFile.isClosed) {
-            lookupFile = createLookupFile(file);
-            lookupFiles.put(file.fileName(), lookupFile);
+            lookupFile = createLookupFile(file); // 基于源文件重新创建 KV 存储文件
+            lookupFiles.put(file.fileName(), lookupFile); // 加入缓存
         }
 
         byte[] keyBytes = keySerializer.serializeToBytes(key);
-        byte[] valueBytes = lookupFile.get(keyBytes);
+        byte[] valueBytes = lookupFile.get(keyBytes); // 使用 LookupStoreReader 查找
         if (valueBytes == null) {
             return null;
         }
 
+        // 对 value 做处理，加入一些元信息，如属于哪个文件、属于哪个 level
         return valueProcessor.readFromDisk(
                 key, lookupFile.remoteFile().level(), valueBytes, file.fileName());
     }
 
     private int fileWeigh(String file, LookupFile lookupFile) {
+        // 获取文件大小的 KB 表示
         return fileKibiBytes(lookupFile.localFile);
     }
 
     private void removalCallback(String key, LookupFile file, RemovalCause cause) {
         if (file != null) {
             try {
-                file.close();
+                file.close(); // 关闭 reader 并删除本地转写的文件
             } catch (IOException e) {
                 throw new UncheckedIOException(e);
             }
         }
     }
 
+    // 创建 LookupFile.
     private LookupFile createLookupFile(DataFileMeta file) throws IOException {
-        File localFile = localFileFactory.get();
+        File localFile = localFileFactory.get(); // 获取一个本地文件路径，也就是转写成 KV 存储的文件
         if (!localFile.createNewFile()) {
             throw new IOException("Can not create new file: " + localFile);
         }
+
+        // LookupStoreWriter 用于转写原始文件为 KV 存储
         LookupStoreWriter kvWriter =
                 lookupStoreFactory.createWriter(localFile, bfGenerator.apply(file.rowCount()));
+        // 存储转写过程中的上下文信息
         LookupStoreFactory.Context context;
+
+        // 读取原始数据
         try (RecordReader<KeyValue> reader = fileReaderFactory.apply(file)) {
             KeyValue kv;
-            if (valueProcessor.withPosition()) {
+            if (valueProcessor.withPosition()) { // 转写过程中需要加上行号
                 FileRecordIterator<KeyValue> batch;
                 while ((batch = (FileRecordIterator<KeyValue>) reader.readBatch()) != null) {
                     while ((kv = batch.next()) != null) {
@@ -195,9 +208,9 @@ public class LookupLevels<T> implements Levels.DropFileCallback, Closeable {
                 RecordReader.RecordIterator<KeyValue> batch;
                 while ((batch = reader.readBatch()) != null) {
                     while ((kv = batch.next()) != null) {
-                        byte[] keyBytes = keySerializer.serializeToBytes(kv.key());
-                        byte[] valueBytes = valueProcessor.persistToDisk(kv);
-                        kvWriter.put(keyBytes, valueBytes);
+                        byte[] keyBytes = keySerializer.serializeToBytes(kv.key()); // 获取 key
+                        byte[] valueBytes = valueProcessor.persistToDisk(kv); // 获取 value
+                        kvWriter.put(keyBytes, valueBytes); // 转写 KV store.
                     }
                     batch.releaseBatch();
                 }
@@ -206,19 +219,22 @@ public class LookupLevels<T> implements Levels.DropFileCallback, Closeable {
             FileIOUtils.deleteFileOrDirectory(localFile);
             throw e;
         } finally {
-            context = kvWriter.close();
+            context = kvWriter.close(); // 获取写入的上下文信息
         }
 
+        // 创建 LookupFile，包含怎样读取这个文件的 reader
         return new LookupFile(localFile, file, lookupStoreFactory.createReader(localFile, context));
     }
 
     @Override
     public void close() throws IOException {
+        // 清空缓存、删除本地文件
         lookupFiles.invalidateAll();
     }
 
+    // 表示一种易于根据 KEY 查找值的数据文件
     private static class LookupFile implements Closeable {
-        // bucket 中的一个文件
+        // bucket 中的一个文件，已经使用 LookupStoreWriter 转换为了 kv 文件存储
 
         private final File localFile;
         private final DataFileMeta remoteFile; // 文件描述信息
@@ -253,6 +269,8 @@ public class LookupLevels<T> implements Levels.DropFileCallback, Closeable {
 
     /**
      * 自定义 Value 处理器，怎么读取、写入 Value.
+     *
+     * <p>用于对值做一些特殊处理，如加上文件行号，表示第几条数据.
      *
      * <p>Processor to process value.
      */

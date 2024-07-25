@@ -31,7 +31,8 @@ import java.util.function.Function;
 /**
  * 用于创建 LookupStoreWriter 和 LookupStoreReader.
  *
- * <p>LookupStoreWriter 会重写一个 bucket 文件，只写一次. LookupStoreReader 会根据 key bytes 查找 value.
+ * <p>LookupStoreWriter 会重写一个 bucket 文件，目的是方便根据 key 查询值，只写一次. LookupStoreReader 会根据 key bytes 查找
+ * value.
  *
  * <p>A key-value store for lookup, key-value store should be single binary file written once and
  * ready to be used. This factory provide two interfaces:

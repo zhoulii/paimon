@@ -63,6 +63,8 @@ public class Levels {
         this.level0 =
                 // 先按 max sequence number 排序，大的在前，小的在后，也就是新文件在前，旧文件在后
                 // 如果两个文件 max sequence number 一样，则按名称排序，而不是当做相同的文件被 TreeSet 去重
+                // sequence number 和 sequence field 不是一个概念，sequence 是自增的，两个作业同时写一张表是可能出现相同的 sequence
+                // number
                 new TreeSet<>(
                         (a, b) -> {
                             if (a.maxSequenceNumber() != b.maxSequenceNumber()) {
@@ -73,6 +75,7 @@ public class Levels {
                                 // possible that multiple files have the same maxSequenceNumber. In
                                 // this case we have to compare their file names so that files with
                                 // same maxSequenceNumber won't be "de-duplicated" by the tree set.
+                                // 根据文件名称排序
                                 return a.fileName().compareTo(b.fileName());
                             }
                         });

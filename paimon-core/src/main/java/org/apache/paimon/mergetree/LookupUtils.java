@@ -43,12 +43,18 @@ public class LookupUtils {
         T result = null;
         for (int i = startLevel; i < levels.numberOfLevels(); i++) {
             if (i == 0) {
+                // 查找 level 0
                 result = level0Lookup.apply(key, levels.level0());
             } else {
+                // 查找 level 0 之上的 SortedRun
                 SortedRun level = levels.runOfLevel(i);
                 result = lookup.apply(key, level);
             }
             if (result != null) {
+                // 找到就退出，Levels 中，level0 中的文件最新的文件排在开始位置
+                // lookup join 查找 level-0 的文件可能会导致结果不准确
+                // - level-0 max sequence number 相同时，文件不保序
+                // 是否给修改成 lookup 只查找 full compaction 或 lookup compaction 类型 snapshot 对应的 bucket 文件？
                 break;
             }
         }
@@ -62,6 +68,7 @@ public class LookupUtils {
             TreeSet<DataFileMeta> level0,
             BiFunctionWithIOE<InternalRow, DataFileMeta, T> lookup)
             throws IOException {
+        // 在 level0 中查找，先判断区间，再根据 KEY 查询
         T result = null;
         for (DataFileMeta file : level0) {
             if (keyComparator.compare(file.maxKey(), target) >= 0
@@ -89,6 +96,7 @@ public class LookupUtils {
         int left = 0;
         int right = files.size() - 1;
 
+        // 二分查找 KEY 在 SortedRun 中的那个文件里
         // binary search restart positions to find the restart position immediately before the
         // targetKey
         while (left < right) {
@@ -111,15 +119,20 @@ public class LookupUtils {
         // than the target key.  If so, we need to seek beyond the end of this file
         if (index == files.size() - 1
                 && keyComparator.compare(files.get(index).maxKey(), target) < 0) {
+            // KEY 大于 SortedRun 的最大 key
             index++;
         }
 
+        // 查找文件或直接返回 null.
+        // todo 可以进一步优化，如果 KEY 小于最小 KEY 或大于最大 KEY 则直接返回 null，放到二分查找之前
+        // todo 这里还可以判断下 KEY 是否在文件表示的区间，不在则直接返回 null
         // if files does not have a next, it means the key does not exist in this level
         return index < files.size() ? lookup.apply(target, files.get(index)) : null;
     }
 
+    // 文件大小的 KB 表示
     public static int fileKibiBytes(File file) {
-        long kibiBytes = file.length() >> 10;
+        long kibiBytes = file.length() >> 10; // 除以 1024
         if (kibiBytes > Integer.MAX_VALUE) {
             throw new RuntimeException(
                     "Lookup file is too big: " + MemorySize.ofKibiBytes(kibiBytes));
