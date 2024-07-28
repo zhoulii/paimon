@@ -21,14 +21,18 @@ package org.apache.paimon.service.network.messages;
 import org.apache.paimon.shade.netty4.io.netty.buffer.ByteBuf;
 
 /**
- * A utility used to deserialize a {@link MessageBody message}.
+ * 反序列化 MessageBody.
+ *
+ * <p>A utility used to deserialize a {@link MessageBody message}.
  *
  * @param <M> The type of the message to be deserialized. It has to extend {@link MessageBody}
  */
 public interface MessageDeserializer<M extends MessageBody> {
 
     /**
-     * Deserializes a message contained in a byte buffer.
+     * 从 ByteBuf 中反序列化消息.
+     *
+     * <p>Deserializes a message contained in a byte buffer.
      *
      * @param buf the buffer containing the message.
      * @return The deserialized message.

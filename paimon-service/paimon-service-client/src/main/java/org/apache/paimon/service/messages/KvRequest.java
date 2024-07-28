@@ -34,7 +34,13 @@ import static org.apache.paimon.service.network.messages.MessageDeserializer.rea
 import static org.apache.paimon.utils.SerializationUtils.deserializeBinaryRow;
 import static org.apache.paimon.utils.SerializationUtils.serializeBinaryRow;
 
-/** The request to query values for keys. */
+/**
+ * 表示根据 key 查询 value 的请求消息.
+ *
+ * <p>通过 partition + bucket 来表示查询那个桶的数据.
+ *
+ * <p>The request to query values for keys.
+ */
 public class KvRequest extends MessageBody {
 
     private final BinaryRow partition;
@@ -59,17 +65,22 @@ public class KvRequest extends MessageBody {
         return keys;
     }
 
+    // partition length - partition bytes + bucket + key num - (key1 length + key1 bytes) - ...
     @Override
     public byte[] serialize() {
+        // 消息序列化后的大小
         int size = 0;
 
         byte[] partitionBytes = serializeBinaryRow(partition);
+        // 4 用来存储 partition 的长度，partitionBytes.length 用来存储 partition 的字节数组
         size += 4 + partitionBytes.length;
 
         // bucket
+        // bucket 使用 4 个字节表示
         size += 4;
 
         // key size
+        // key 的数量使用一个字节表示
         size += 4;
 
         List<byte[]> keyBytesList = new ArrayList<>();
@@ -113,7 +124,11 @@ public class KvRequest extends MessageBody {
         return result;
     }
 
-    /** A {@link MessageDeserializer deserializer} for {@link KvRequest}. */
+    /**
+     * 反序列化 KVRequest 消息.
+     *
+     * <p>A {@link MessageDeserializer deserializer} for {@link KvRequest}.
+     */
     public static class KvRequestDeserializer implements MessageDeserializer<KvRequest> {
 
         @Override

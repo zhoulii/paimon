@@ -31,7 +31,11 @@ import static org.apache.paimon.service.network.messages.MessageDeserializer.rea
 import static org.apache.paimon.utils.SerializationUtils.deserializeBinaryRow;
 import static org.apache.paimon.utils.SerializationUtils.serializeBinaryRow;
 
-/** The response containing values sent by the Server to the Client. */
+/**
+ * 返回的 value 数据.
+ *
+ * <p>The response containing values sent by the Server to the Client.
+ */
 public class KvResponse extends MessageBody {
 
     private final BinaryRow[] values;
@@ -44,6 +48,7 @@ public class KvResponse extends MessageBody {
         return values;
     }
 
+    // values size - is null - value1 length - value1 bytes - value2 length - value2 bytes ...
     @Override
     public byte[] serialize() {
         // value size
@@ -53,6 +58,7 @@ public class KvResponse extends MessageBody {
         for (int i = 0; i < values.length; i++) {
             BinaryRow value = values[i];
             // is null
+            // 使用 1 个字节表示是否为 null
             size += 1;
             if (value != null) {
                 byte[] valueBytes = serializeBinaryRow(value);
@@ -93,7 +99,11 @@ public class KvResponse extends MessageBody {
         return Arrays.hashCode(values);
     }
 
-    /** A {@link MessageDeserializer deserializer} for {@link KvResponseDeserializer}. */
+    /**
+     * 反序列化 KvResponse.
+     *
+     * <p>A {@link MessageDeserializer deserializer} for {@link KvResponseDeserializer}.
+     */
     public static class KvResponseDeserializer implements MessageDeserializer<KvResponse> {
 
         @Override

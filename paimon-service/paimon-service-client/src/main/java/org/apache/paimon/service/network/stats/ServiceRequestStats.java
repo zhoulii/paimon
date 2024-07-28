@@ -18,7 +18,11 @@
 
 package org.apache.paimon.service.network.stats;
 
-/** Simple statistics for monitoring the server and the client. */
+/**
+ * 监控客户端与服务端通信，用于跟踪生成一些 statistics.
+ *
+ * <p>Simple statistics for monitoring the server and the client.
+ */
 public interface ServiceRequestStats {
 
     /** Reports an active connection. */

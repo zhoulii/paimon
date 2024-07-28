@@ -22,11 +22,17 @@ import org.apache.paimon.data.BinaryRow;
 
 import java.net.InetSocketAddress;
 
-/** An interface to get query location. */
+/**
+ * bucket 所在远程服务的地址.
+ *
+ * <p>An interface to get query location.
+ */
 public interface QueryLocation {
 
     /**
-     * Get location from partition and bucket.
+     * 获取 partition and bucket 的远程服务地址，forceUpdate 是否强制更新地址缓存.
+     *
+     * <p>Get location from partition and bucket.
      *
      * @param forceUpdate whether to refresh location cache.
      */

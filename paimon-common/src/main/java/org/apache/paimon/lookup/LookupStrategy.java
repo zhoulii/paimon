@@ -18,9 +18,17 @@
 
 package org.apache.paimon.lookup;
 
-/** Strategy for lookup. */
+/**
+ * lookup 策略.
+ *
+ * <p>Strategy for lookup.
+ */
 public class LookupStrategy {
 
+    // lookup changelog producer 或 first row merge engine 或使用 deletion vector 时需 lookup
+    // 两点须知：
+    // 1.lookup 全是在 compaction 阶段做
+    // 2.写入内存时也会执行 MergeFunction，first-row 在写入内存时语义也能保证的
     public final boolean needLookup;
 
     public final boolean isFirstRow;

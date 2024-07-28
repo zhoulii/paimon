@@ -55,7 +55,9 @@ import java.util.concurrent.atomic.AtomicReference;
  * additional information regarding copyright ownership. */
 
 /**
- * The base class for every client. It is using pure netty to send and receive messages of type
+ * 基于 NETTY 实现，用于发送请求与接收响应.
+ *
+ * <p>The base class for every client. It is using pure netty to send and receive messages of type
  * {@link MessageBody}.
  *
  * @param <REQ> the type of request the client will send.
@@ -65,7 +67,11 @@ public class NetworkClient<REQ extends MessageBody, RESP extends MessageBody> {
 
     private static final Logger LOG = LoggerFactory.getLogger(NetworkClient.class);
 
-    /** The name of the client. Used for logging and stack traces. */
+    /**
+     * 客户端名称.
+     *
+     * <p>The name of the client. Used for logging and stack traces.
+     */
     private final String clientName;
 
     /** Netty's Bootstrap. */
@@ -74,13 +80,22 @@ public class NetworkClient<REQ extends MessageBody, RESP extends MessageBody> {
     /** The serializer to be used for (de-)serializing messages. */
     private final MessageSerializer<REQ, RESP> messageSerializer;
 
-    /** Statistics tracker. */
+    /**
+     * 追踪统计信息.
+     *
+     * <p>Statistics tracker.
+     */
     private final ServiceRequestStats stats;
 
+    // 存储连接到某台服务节点的连接.
     private final Map<InetSocketAddress, ServerConnection<REQ, RESP>> connections =
             new ConcurrentHashMap<>();
 
-    /** Atomic shut down future. */
+    /**
+     * 标识客户端是否关闭.
+     *
+     * <p>Atomic shut down future.
+     */
     private final AtomicReference<CompletableFuture<Void>> clientShutdownFuture =
             new AtomicReference<>(null);
 
@@ -98,6 +113,7 @@ public class NetworkClient<REQ extends MessageBody, RESP extends MessageBody> {
             final MessageSerializer<REQ, RESP> serializer,
             final ServiceRequestStats stats) {
 
+        // event loop 线程数
         Preconditions.checkArgument(
                 numEventLoopThreads >= 1, "Non-positive number of event loop threads.");
 
@@ -112,6 +128,7 @@ public class NetworkClient<REQ extends MessageBody, RESP extends MessageBody> {
                         .build();
 
         final EventLoopGroup nioGroup = new NioEventLoopGroup(numEventLoopThreads, threadFactory);
+        // 用于获取 buffer，Pool 大小为 numEventLoopThreads.
         final ByteBufAllocator bufferPool = new NettyBufferPool(numEventLoopThreads);
 
         this.bootstrap =
@@ -123,6 +140,8 @@ public class NetworkClient<REQ extends MessageBody, RESP extends MessageBody> {
                                 new ChannelInitializer<SocketChannel>() {
                                     @Override
                                     protected void initChannel(SocketChannel channel) {
+                                        // LengthFieldBasedFrameDecoder：用于根据消息的长度字段对数据帧进行解码，能解决拆包、粘包问题
+                                        // ChunkedWriteHandler：将较大的消息流分块写出
                                         channel.pipeline()
                                                 .addLast(
                                                         new LengthFieldBasedFrameDecoder(
@@ -139,6 +158,7 @@ public class NetworkClient<REQ extends MessageBody, RESP extends MessageBody> {
     public CompletableFuture<RESP> sendRequest(
             final InetSocketAddress serverAddress, final REQ request) {
         if (clientShutdownFuture.get() != null) {
+            // 客户端已关闭
             return FutureUtils.completedExceptionally(
                     new IllegalStateException(clientName + " is already shut down."));
         }
@@ -147,15 +167,19 @@ public class NetworkClient<REQ extends MessageBody, RESP extends MessageBody> {
                 connections.computeIfAbsent(
                         serverAddress,
                         ignored -> {
+                            // 创建一个 Pending Connection
                             final ServerConnection<REQ, RESP> newConnection =
                                     ServerConnection.createPendingConnection(
                                             clientName, messageSerializer, stats);
+
+                            // 建立连接，ServerConnection 内部 Connection 类型发生改变
                             bootstrap
                                     .connect(serverAddress.getAddress(), serverAddress.getPort())
                                     .addListener(
                                             (ChannelFutureListener)
                                                     newConnection::establishConnection);
 
+                            // 注册关闭回调
                             newConnection
                                     .getCloseFuture()
                                     .handle(
@@ -166,11 +190,14 @@ public class NetworkClient<REQ extends MessageBody, RESP extends MessageBody> {
                             return newConnection;
                         });
 
+        // 通过连接发送请求
         return connection.sendRequest(request);
     }
 
     /**
-     * Shuts down the client and closes all connections.
+     * 关闭 client 及所有的连接.
+     *
+     * <p>Shuts down the client and closes all connections.
      *
      * <p>After a call to this method, all returned futures will be failed.
      *
@@ -178,6 +205,7 @@ public class NetworkClient<REQ extends MessageBody, RESP extends MessageBody> {
      */
     public CompletableFuture<Void> shutdown() {
         final CompletableFuture<Void> newShutdownFuture = new CompletableFuture<>();
+        // 原子性关闭
         if (clientShutdownFuture.compareAndSet(null, newShutdownFuture)) {
 
             final List<CompletableFuture<Void>> connectionFutures = new ArrayList<>();
@@ -185,13 +213,16 @@ public class NetworkClient<REQ extends MessageBody, RESP extends MessageBody> {
             for (Map.Entry<InetSocketAddress, ServerConnection<REQ, RESP>> conn :
                     connections.entrySet()) {
                 if (connections.remove(conn.getKey(), conn.getValue())) {
+                    // 关闭 connection，返回关闭 CompletableFuture.
                     connectionFutures.add(conn.getValue().close());
                 }
             }
 
             CompletableFuture.allOf(connectionFutures.toArray(new CompletableFuture<?>[0]))
+                    // 所有连接都关闭之后
                     .whenComplete(
                             (result, throwable) -> {
+                                // 发生异常
                                 if (throwable != null) {
                                     LOG.warn(
                                             "Problem while shutting down the connections at the {}: {}",
@@ -199,11 +230,14 @@ public class NetworkClient<REQ extends MessageBody, RESP extends MessageBody> {
                                             throwable);
                                 }
 
+                                // 关闭 NIO 线程组
                                 if (bootstrap != null) {
                                     EventLoopGroup group = bootstrap.config().group();
                                     if (group != null && !group.isShutdown()) {
+                                        // 等待时间、超时时间
                                         group.shutdownGracefully(0L, 0L, TimeUnit.MILLISECONDS)
                                                 .addListener(
+                                                        // 设置关闭监听
                                                         finished -> {
                                                             if (finished.isSuccess()) {
                                                                 newShutdownFuture.complete(null);
@@ -221,12 +255,14 @@ public class NetworkClient<REQ extends MessageBody, RESP extends MessageBody> {
                                 }
                             });
 
+            // 返回关闭 Future
             return newShutdownFuture;
         }
         return clientShutdownFuture.get();
     }
 
     public boolean isEventGroupShutdown() {
+        // 客户端是否关闭
         return bootstrap == null || bootstrap.config().group().isTerminated();
     }
 }

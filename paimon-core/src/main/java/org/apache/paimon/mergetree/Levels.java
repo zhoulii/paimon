@@ -60,6 +60,7 @@ public class Levels {
                         numLevels,
                         inputFiles.stream().mapToInt(DataFileMeta::level).max().orElse(-1) + 1);
         checkArgument(restoredNumLevels > 1, "Number of levels must be at least 2.");
+        // 只有 merge-engine 为 deduplicate ，并且不指定 sequence 时，才会 lookup level-0
         this.level0 =
                 // 先按 max sequence number 排序，大的在前，小的在后，也就是新文件在前，旧文件在后
                 // 如果两个文件 max sequence number 一样，则按名称排序，而不是当做相同的文件被 TreeSet 去重

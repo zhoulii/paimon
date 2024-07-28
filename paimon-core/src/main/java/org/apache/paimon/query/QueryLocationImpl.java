@@ -27,11 +27,16 @@ import java.util.Optional;
 import static org.apache.paimon.service.ServiceManager.PRIMARY_KEY_LOOKUP;
 import static org.apache.paimon.table.sink.ChannelComputer.select;
 
-/** An implementation of {@link QueryLocation} to get location from {@link ServiceManager}. */
+/**
+ * BUCKET 对应的远程服务地址，支持缓存.
+ *
+ * <p>An implementation of {@link QueryLocation} to get location from {@link ServiceManager}.
+ */
 public class QueryLocationImpl implements QueryLocation {
 
     private final ServiceManager manager;
 
+    // 服务地址缓存
     private InetSocketAddress[] addressesCache;
 
     public QueryLocationImpl(ServiceManager manager) {
@@ -41,6 +46,7 @@ public class QueryLocationImpl implements QueryLocation {
     @Override
     public InetSocketAddress getLocation(BinaryRow partition, int bucket, boolean forceUpdate) {
         if (addressesCache == null || forceUpdate) {
+            // 获取服务地址
             Optional<InetSocketAddress[]> addresses = manager.service(PRIMARY_KEY_LOOKUP);
             if (!addresses.isPresent()) {
                 throw new RuntimeException(
@@ -49,6 +55,9 @@ public class QueryLocationImpl implements QueryLocation {
             addressesCache = addresses.get();
         }
 
+        // 获取 partition 的 bucket 对应的服务地址
+        // 计算逻辑为：(Math.abs(partition.hashCode()) % addressesCache.length + bucket) %
+        // addressesCache.length
         return addressesCache[select(partition, bucket, addressesCache.length)];
     }
 }

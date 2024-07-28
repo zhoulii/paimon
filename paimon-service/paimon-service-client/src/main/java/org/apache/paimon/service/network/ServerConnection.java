@@ -116,6 +116,7 @@ final class ServerConnection<REQ extends MessageBody, RESP extends MessageBody> 
         return closeFuture;
     }
 
+    // 创建一个 Pending Connection.
     static <REQ extends MessageBody, RESP extends MessageBody>
             ServerConnection<REQ, RESP> createPendingConnection(
                     final String clientName,
@@ -303,7 +304,9 @@ final class ServerConnection<REQ extends MessageBody, RESP extends MessageBody> 
         private boolean running = true;
 
         /**
-         * Creates an established connection with the given channel.
+         * 与一个 channel 绑定的 connection.
+         *
+         * <p>Creates an established connection with the given channel.
          *
          * @param channel The actual TCP channel
          */

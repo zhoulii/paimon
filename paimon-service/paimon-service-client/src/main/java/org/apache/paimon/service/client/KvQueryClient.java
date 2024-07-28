@@ -36,12 +36,17 @@ import java.net.InetSocketAddress;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
-/** A class for the Client to get values from Servers. */
+/**
+ * 从远程服务获取 KV 值的客户端.
+ *
+ * <p>A class for the Client to get values from Servers.
+ */
 public class KvQueryClient {
 
     private static final Logger LOG = LoggerFactory.getLogger(KvQueryClient.class);
 
     private final NetworkClient<KvRequest, KvResponse> networkClient;
+    // bucket 所在服务地址
     private final QueryLocation queryLocation;
 
     public KvQueryClient(QueryLocation queryLocation, int numEventLoopThreads) {
@@ -62,6 +67,7 @@ public class KvQueryClient {
     public CompletableFuture<BinaryRow[]> getValues(
             BinaryRow partition, int bucket, BinaryRow[] keys) {
         CompletableFuture<BinaryRow[]> response = new CompletableFuture<>();
+        // 异步执行查询，update 表示是否强制刷新缓存的服务地址
         executeActionAsync(response, new KvRequest(partition, bucket, keys), false);
         return response;
     }
@@ -77,7 +83,7 @@ public class KvQueryClient {
                         if (throwable != null) {
                             if (throwable instanceof UnknownPartitionBucketException
                                     || throwable.getCause() instanceof ConnectException) {
-
+                                // 服务地址不同步导致的，进行重试
                                 // These failures are likely to be caused by out-of-sync location.
                                 // Therefore, we retry this query and force lookup the location.
 
@@ -86,29 +92,36 @@ public class KvQueryClient {
                                         throwable.getMessage());
                                 executeActionAsync(result, request, true);
                             } else {
+                                // 其他异常则直接失败
                                 result.completeExceptionally(throwable);
                             }
                         } else {
+                            // 保存查询结果
                             result.complete(t.values());
                         }
                     });
 
+            // 注册获取到结果时的回调，关闭之前的请求操作
+            // 什么情况下会发生已经获取到结果，而 operationFuture 没关闭的情况呢?
             result.whenComplete((t, throwable) -> operationFuture.cancel(false));
         }
     }
 
     private CompletableFuture<KvResponse> getResponse(
             final KvRequest request, final boolean forceUpdate) {
+        // 获取服务地址
         InetSocketAddress serverAddress =
                 queryLocation.getLocation(request.partition(), request.bucket(), forceUpdate);
         if (serverAddress == null) {
             return FutureUtils.completedExceptionally(
                     new RuntimeException("Cannot find address for bucket: " + request.bucket()));
         }
+        // 发送请求
         return networkClient.sendRequest(serverAddress, request);
     }
 
     public void shutdown() {
+        // 关闭客户端
         try {
             networkClient.shutdown().get(10L, TimeUnit.SECONDS);
             LOG.info("{} was shutdown successfully.", networkClient.getClientName());

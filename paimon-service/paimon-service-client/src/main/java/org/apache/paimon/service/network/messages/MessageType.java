@@ -22,20 +22,22 @@ import org.apache.paimon.service.network.NetworkClient;
 import org.apache.paimon.service.network.NetworkServer;
 
 /**
- * Expected message types during the communication between {@link NetworkClient} and {@link
+ * 客户端与服务端传递的消息类型.
+ *
+ * <p>Expected message types during the communication between {@link NetworkClient} and {@link
  * NetworkServer}.
  */
 public enum MessageType {
 
-    /** The message is a request. */
+    /** The message is a request.（请求消息）. */
     REQUEST,
 
-    /** The message is a successful response. */
+    /** The message is a successful response. （请求响应消息）. */
     REQUEST_RESULT,
 
-    /** The message indicates a protocol-related failure. */
+    /** The message indicates a protocol-related failure. （请求失败消息）. */
     REQUEST_FAILURE,
 
-    /** The message indicates a server failure. */
+    /** The message indicates a server failure.（服务端异常消息）. */
     SERVER_FAILURE
 }

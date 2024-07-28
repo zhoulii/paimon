@@ -22,15 +22,19 @@ import org.apache.paimon.service.network.NetworkClient;
 import org.apache.paimon.service.network.NetworkServer;
 
 /**
- * The base class for every message exchanged during the communication between {@link NetworkClient}
- * and {@link NetworkServer}.
+ * 客户端与服务端传递的消息类.
+ *
+ * <p>The base class for every message exchanged during the communication between {@link
+ * NetworkClient} and {@link NetworkServer}.
  *
  * <p>Every such message should also have a {@link MessageDeserializer}.
  */
 public abstract class MessageBody {
 
     /**
-     * Serializes the message into a byte array.
+     * 获取消息的序列化后的字节数组.
+     *
+     * <p>Serializes the message into a byte array.
      *
      * @return A byte array with the serialized content of the message.
      */

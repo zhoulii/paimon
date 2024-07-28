@@ -18,7 +18,11 @@
 
 package org.apache.paimon.service.network.stats;
 
-/** Disabled {@link ServiceRequestStats} implementation. */
+/**
+ * 不记录请求、连接统计信息.
+ *
+ * <p>Disabled {@link ServiceRequestStats} implementation.
+ */
 public class DisabledServiceRequestStats implements ServiceRequestStats {
 
     @Override

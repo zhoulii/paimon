@@ -28,7 +28,11 @@ import javax.annotation.Nullable;
 import java.io.Closeable;
 import java.io.IOException;
 
-/** A query of Table to perform lookup. */
+/**
+ * 执行 lookup 操作的接口.
+ *
+ * <p>A query of Table to perform lookup.
+ */
 public interface TableQuery extends Closeable {
 
     default TableQuery withValueProjection(int[] projection) {

@@ -35,6 +35,7 @@ public interface ChannelComputer<T> extends Serializable {
     int channel(T record);
 
     static int select(BinaryRow partition, int bucket, int numChannels) {
+        // 计算 bucket 应该发往下游哪个 channel
         int startChannel = Math.abs(partition.hashCode()) % numChannels;
         return (startChannel + bucket) % numChannels;
     }

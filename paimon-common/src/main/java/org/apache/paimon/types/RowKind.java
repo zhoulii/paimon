@@ -21,7 +21,7 @@ package org.apache.paimon.types;
 import org.apache.paimon.annotation.Public;
 
 /**
- * changelog 中一个 row 的 change kind.
+ * ROW 的类型，LSM 数据文件和 Changelog 文件中都会有 INSERT, UPDATE_BEFORE, UPDATE_AFTER, DELETE.
  *
  * <p>Lists all kinds of changes that a row can describe in a changelog.
  *

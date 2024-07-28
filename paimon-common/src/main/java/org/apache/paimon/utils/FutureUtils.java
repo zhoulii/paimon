@@ -27,7 +27,9 @@ import java.util.function.BiConsumer;
 public class FutureUtils {
 
     /**
-     * Returns an exceptionally completed {@link CompletableFuture}.
+     * 返回一个异常关闭的 {@link CompletableFuture}.
+     *
+     * <p>Returns an exceptionally completed {@link CompletableFuture}.
      *
      * @param cause to complete the future with
      * @param <T> type of the future

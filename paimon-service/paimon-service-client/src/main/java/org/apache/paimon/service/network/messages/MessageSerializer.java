@@ -33,10 +33,14 @@ import java.io.ObjectOutput;
 import java.io.ObjectOutputStream;
 
 /**
- * Serialization and deserialization of messages exchanged between {@link NetworkClient} and {@link
- * NetworkServer}.
+ * Query Service 使用的消息的序列化/反序列化器.
+ *
+ * <p>Serialization and deserialization of messages exchanged between {@link NetworkClient} and
+ * {@link NetworkServer}.
  *
  * <p>The binary messages have the following format:
+ *
+ * <p>消息长度 - 版本号 - 消息类型(MessageType) - 消息内容.
  *
  * <pre>
  *                     <------ Frame ------------------------->
@@ -55,18 +59,26 @@ import java.io.ObjectOutputStream;
 public final class MessageSerializer<REQ extends MessageBody, RESP extends MessageBody> {
 
     /** The serialization version ID. */
-    private static final int VERSION = 1;
+    private static final int VERSION = 1; // 版本占 4 个字节
 
     /** Byte length of the header. */
-    private static final int HEADER_LENGTH = 2 * Integer.BYTES;
+    private static final int HEADER_LENGTH = 2 * Integer.BYTES; // header 占 8 个字节
 
     /** Byte length of the request id. */
-    private static final int REQUEST_ID_SIZE = Long.BYTES;
+    private static final int REQUEST_ID_SIZE = Long.BYTES; // request id 占 8 个字节
 
-    /** The constructor of the {@link MessageBody client requests}. Used for deserialization. */
+    /**
+     * Request 的反序列化器.
+     *
+     * <p>The constructor of the {@link MessageBody client requests}. Used for deserialization.
+     */
     private final MessageDeserializer<REQ> requestDeserializer;
 
-    /** The constructor of the {@link MessageBody server responses}. Used for deserialization. */
+    /**
+     * Response 的反序列化器.
+     *
+     * <p>The constructor of the {@link MessageBody server responses}. Used for deserialization.
+     */
     private final MessageDeserializer<RESP> responseDeserializer;
 
     public MessageSerializer(
@@ -80,7 +92,9 @@ public final class MessageSerializer<REQ extends MessageBody, RESP extends Messa
     // ------------------------------------------------------------------------
 
     /**
-     * Serializes the request sent to the {@link NetworkServer}.
+     * 序列化 Request.
+     *
+     * <p>Serializes the request sent to the {@link NetworkServer}.
      *
      * @param alloc The {@link ByteBufAllocator} used to allocate the buffer to serialize the
      *     message into.
@@ -95,7 +109,9 @@ public final class MessageSerializer<REQ extends MessageBody, RESP extends Messa
     }
 
     /**
-     * Serializes the response sent to the {@link NetworkClient}.
+     * 序列化响应消息.
+     *
+     * <p>Serializes the response sent to the {@link NetworkClient}.
      *
      * @param alloc The {@link ByteBufAllocator} used to allocate the buffer to serialize the
      *     message into.
@@ -110,8 +126,10 @@ public final class MessageSerializer<REQ extends MessageBody, RESP extends Messa
     }
 
     /**
-     * Serializes the exception containing the failure message sent to the {@link NetworkClient} in
-     * case of protocol related errors.
+     * 序列化异常消息.
+     *
+     * <p>Serializes the exception containing the failure message sent to the {@link NetworkClient}
+     * in case of protocol related errors.
      *
      * @param alloc The {@link ByteBufAllocator} used to allocate the buffer to serialize the
      *     message into.
@@ -125,16 +143,21 @@ public final class MessageSerializer<REQ extends MessageBody, RESP extends Messa
 
         final ByteBuf buf = alloc.ioBuffer();
 
+        // 预留位，用于写 frame 长度
         // Frame length is set at the end
         buf.writeInt(0);
+        // 写入头信息
         writeHeader(buf, MessageType.REQUEST_FAILURE);
+        // 写入 request id
         buf.writeLong(requestId);
 
         try (ByteBufOutputStream bbos = new ByteBufOutputStream(buf);
                 ObjectOutput out = new ObjectOutputStream(bbos)) {
+            // 写入异常对象
             out.writeObject(cause);
         }
 
+        // 设置消息长度
         // Set frame length
         int frameLength = buf.readableBytes() - Integer.BYTES;
         buf.setInt(0, frameLength);
@@ -142,7 +165,9 @@ public final class MessageSerializer<REQ extends MessageBody, RESP extends Messa
     }
 
     /**
-     * Serializes the failure message sent to the {@link NetworkClient} in case of server related
+     * 序列化服务端异常消息，整体流程和写入异常消息一样，区别在于不需要写 request id.
+     *
+     * <p>Serializes the failure message sent to the {@link NetworkClient} in case of server related
      * errors.
      *
      * @param alloc The {@link ByteBufAllocator} used to allocate the buffer to serialize the
@@ -171,7 +196,7 @@ public final class MessageSerializer<REQ extends MessageBody, RESP extends Messa
     }
 
     /**
-     * Helper for serializing the header.
+     * header 内容：版本号 + 消息类型. Helper for serializing the header.
      *
      * @param buf The {@link ByteBuf} to serialize the header into.
      * @param messageType The {@link MessageType} of the message this header refers to.
@@ -182,7 +207,9 @@ public final class MessageSerializer<REQ extends MessageBody, RESP extends Messa
     }
 
     /**
-     * Helper for serializing the messages.
+     * 序列化消息主体.
+     *
+     * <p>Helper for serializing the messages.
      *
      * @param alloc The {@link ByteBufAllocator} used to allocate the buffer to serialize the
      *     message into.
@@ -197,13 +224,15 @@ public final class MessageSerializer<REQ extends MessageBody, RESP extends Messa
             final MessageType messageType,
             final byte[] payload) {
 
+        // 数据帧长度
         final int frameLength = HEADER_LENGTH + REQUEST_ID_SIZE + payload.length;
+        // 消息序列化后的完整长度
         final ByteBuf buf = alloc.ioBuffer(frameLength + Integer.BYTES);
 
-        buf.writeInt(frameLength);
-        writeHeader(buf, messageType);
-        buf.writeLong(requestId);
-        buf.writeBytes(payload);
+        buf.writeInt(frameLength); // 消息长度
+        writeHeader(buf, messageType); // 消息头
+        buf.writeLong(requestId); // 消息 id
+        buf.writeBytes(payload); // 消息主体
         return buf;
     }
 
@@ -212,7 +241,9 @@ public final class MessageSerializer<REQ extends MessageBody, RESP extends Messa
     // ------------------------------------------------------------------------
 
     /**
-     * De-serializes the header and returns the {@link MessageType}.
+     * 反序列化消息类型.
+     *
+     * <p>De-serializes the header and returns the {@link MessageType}.
      *
      * <pre>
      *  <b>The buffer is expected to be at the header position.</b>
@@ -240,7 +271,9 @@ public final class MessageSerializer<REQ extends MessageBody, RESP extends Messa
     }
 
     /**
-     * De-serializes the header and returns the {@link MessageType}.
+     * 获取 request id.
+     *
+     * <p>De-serializes the header and returns the {@link MessageType}.
      *
      * <pre>
      *  <b>The buffer is expected to be at the request id position.</b>
@@ -254,7 +287,9 @@ public final class MessageSerializer<REQ extends MessageBody, RESP extends Messa
     }
 
     /**
-     * De-serializes the request sent to the {@link NetworkServer}.
+     * 反序列化 request，参数 buf 的 position 位于消息主体开始.
+     *
+     * <p>De-serializes the request sent to the {@link NetworkServer}.
      *
      * <pre>
      *  <b>The buffer is expected to be at the request position.</b>
@@ -269,7 +304,9 @@ public final class MessageSerializer<REQ extends MessageBody, RESP extends Messa
     }
 
     /**
-     * De-serializes the response sent to the {@link NetworkClient}.
+     * 反序列化 reponse，参数 buf 的 position 位于消息主体开始.
+     *
+     * <p>De-serializes the response sent to the {@link NetworkClient}.
      *
      * <pre>
      *  <b>The buffer is expected to be at the response position.</b>
@@ -284,7 +321,9 @@ public final class MessageSerializer<REQ extends MessageBody, RESP extends Messa
     }
 
     /**
-     * De-serializes the {@link RequestFailure} sent to the {@link NetworkClient} in case of
+     * 反序列化异常响应，参数 buf 的 position 位于消息主体开始.
+     *
+     * <p>De-serializes the {@link RequestFailure} sent to the {@link NetworkClient} in case of
      * protocol related errors.
      *
      * <pre>
@@ -307,8 +346,10 @@ public final class MessageSerializer<REQ extends MessageBody, RESP extends Messa
     }
 
     /**
-     * De-serializes the failure message sent to the {@link NetworkClient} in case of server related
-     * errors.
+     * 反序列化服务器异常响应，参数 buf 的 position 位于消息主体开始.
+     *
+     * <p>De-serializes the failure message sent to the {@link NetworkClient} in case of server
+     * related errors.
      *
      * <pre>
      *  <b>The buffer is expected to be at the correct position.</b>

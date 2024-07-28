@@ -750,6 +750,7 @@ public class CoreOptions implements Serializable {
                     .withDescription(
                             "Max disk size for lookup cache, you can use this option to limit the use of local disks.");
 
+    // 重写 lsm file 为 kv 存储文件时使用的压缩算法
     public static final ConfigOption<String> LOOKUP_CACHE_SPILL_COMPRESSION =
             key("lookup.cache-spill-compression")
                     .stringType()
