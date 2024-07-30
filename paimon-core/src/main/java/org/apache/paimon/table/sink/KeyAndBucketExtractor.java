@@ -24,7 +24,9 @@ import org.apache.paimon.types.RowKind;
 import static org.apache.paimon.utils.Preconditions.checkArgument;
 
 /**
- * Utility interface to extract partition keys, bucket id, primary keys for file store ({@code
+ * 用于提取 partition, bucket, primary keys.
+ *
+ * <p>Utility interface to extract partition keys, bucket id, primary keys for file store ({@code
  * trimmedPrimaryKey}) and primary keys for external log system ({@code logPrimaryKey}) from the
  * given record.
  *
@@ -32,21 +34,28 @@ import static org.apache.paimon.utils.Preconditions.checkArgument;
  */
 public interface KeyAndBucketExtractor<T> {
 
+    // 传进来一条数据
     void setRecord(T record);
 
+    // 获取 partition
     BinaryRow partition();
 
+    // 获取 bucket
     int bucket();
 
+    // 获取删除分区字段的 primary key
     BinaryRow trimmedPrimaryKey();
 
+    // 日志的 primary key
     BinaryRow logPrimaryKey();
 
+    // bucket 的 HASH 值
     static int bucketKeyHashCode(BinaryRow bucketKey) {
         assert bucketKey.getRowKind() == RowKind.INSERT;
         return bucketKey.hashCode();
     }
 
+    // 计算 bucket
     static int bucket(int hashcode, int numBuckets) {
         checkArgument(numBuckets > 0, "Num bucket is illegal: " + numBuckets);
         return Math.abs(hashcode % numBuckets);

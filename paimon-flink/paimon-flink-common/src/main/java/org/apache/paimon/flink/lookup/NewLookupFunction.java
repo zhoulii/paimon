@@ -25,7 +25,11 @@ import org.apache.flink.table.functions.LookupFunction;
 import java.io.IOException;
 import java.util.Collection;
 
-/** New {@link LookupFunction} for 1.16+, it supports Flink retry join. */
+/**
+ * flink 1.16 及以上版本使用，支持 Flink retry join.
+ *
+ * <p>New {@link LookupFunction} for 1.16+, it supports Flink retry join.
+ */
 public class NewLookupFunction extends LookupFunction {
 
     private static final long serialVersionUID = 1L;

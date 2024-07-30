@@ -33,19 +33,26 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 
-/** A {@link LookupTable} for table without primary key. */
+/**
+ * 用于 lookup 非主键表.
+ *
+ * <p>A {@link LookupTable} for table without primary key.
+ */
 public class NoPrimaryKeyLookupTable extends FullCacheLookupTable {
 
     private final long lruCacheSize;
 
+    // 使用 join key 作为 key
     private final KeyProjectedRow joinKeyRow;
 
+    // join key 对应的值使用 list 存储
     private RocksDBListState<InternalRow, InternalRow> state;
 
     public NoPrimaryKeyLookupTable(Context context, long lruCacheSize) {
         super(context);
         this.lruCacheSize = lruCacheSize;
         List<String> fieldNames = projectedType.getFieldNames();
+        // 获取 join key 的在维表字段中的 index
         int[] joinKeyMapping = context.joinKey.stream().mapToInt(fieldNames::indexOf).toArray();
         this.joinKeyRow = new KeyProjectedRow(joinKeyMapping);
     }
@@ -70,6 +77,7 @@ public class NoPrimaryKeyLookupTable extends FullCacheLookupTable {
 
     @Override
     public void refresh(Iterator<InternalRow> incremental) throws IOException {
+        // append 表不支持使用 sequence field.
         if (userDefinedSeqComparator != null) {
             throw new IllegalArgumentException(
                     "Append table does not support user defined sequence fields.");
@@ -84,6 +92,7 @@ public class NoPrimaryKeyLookupTable extends FullCacheLookupTable {
                     state.add(joinKeyRow, row);
                 }
             } else {
+                // append 表只支持 insert/update_after 消息.
                 throw new RuntimeException(
                         String.format(
                                 "Received %s message. Only INSERT/UPDATE_AFTER values are expected here.",
@@ -114,6 +123,7 @@ public class NoPrimaryKeyLookupTable extends FullCacheLookupTable {
 
             @Override
             public void write(byte[] key, byte[] value) throws IOException {
+                // 如果 key 不同，则将上一个 key 的 value 写入到 rocksdb
                 if (currentKey != null && !Arrays.equals(key, currentKey)) {
                     flush();
                 }
@@ -130,6 +140,7 @@ public class NoPrimaryKeyLookupTable extends FullCacheLookupTable {
             private void flush() throws IOException {
                 if (currentKey != null && values.size() > 0) {
                     try {
+                        // 写出 key - list 到 rocksdb，rocksdb 可以自动做 list 的 merge
                         bulkLoader.write(currentKey, state.serializeList(values));
                     } catch (BulkLoader.WriteException e) {
                         throw new RuntimeException(e);

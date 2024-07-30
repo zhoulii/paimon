@@ -23,11 +23,18 @@ import org.apache.flink.table.data.RowData;
 import org.apache.flink.table.functions.FunctionContext;
 import org.apache.flink.table.functions.TableFunction;
 
-/** Old lookup {@link TableFunction} for 1.15-. */
+/**
+ * flink 1.15 及以下版本使用，以上版本使用 {@link NewLookupFunction}.
+ *
+ * <p>二者的继承体系发生了变化，NewLookupFunction 继承自 LookupFunction，而 OldLookupFunction 继承自 TableFunction.
+ *
+ * <p>Old lookup {@link TableFunction} for 1.15-.
+ */
 public class OldLookupFunction extends TableFunction<RowData> {
 
     private static final long serialVersionUID = 1L;
 
+    // 不管是 OldLookupFunction 还是 NewLookupFunction，都依赖 FileStoreLookupFunction 来关联数据.
     private final FileStoreLookupFunction function;
 
     public OldLookupFunction(FileStoreLookupFunction function) {

@@ -31,7 +31,13 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-/** A {@link AsyncLookupFunction} to wrap sync function. */
+/**
+ * 继承自 AsyncLookupFunction 接口，支持异步 lookup，底层仍是基于 NewLookupFunction 来实现.
+ *
+ * <p>注：paimon 的 async lookup 并不是真正的异步，由于加了同步，实际上还是一个线程在做关联.
+ *
+ * <p>A {@link AsyncLookupFunction} to wrap sync function.
+ */
 public class AsyncLookupFunctionWrapper extends AsyncLookupFunction {
 
     private final NewLookupFunction function;
@@ -54,7 +60,13 @@ public class AsyncLookupFunctionWrapper extends AsyncLookupFunction {
         Thread.currentThread()
                 .setContextClassLoader(AsyncLookupFunctionWrapper.class.getClassLoader());
         try {
+            // 加了同步锁，所以虽然使用了线程池，但还是同步执行
+            // 之所以加锁，是因为 NewLookupFunction 关联过程中，使用到的很多对象都是非线程安全的
+            // 但是也可以进行优化：
+            // - 不同文件可以同时做 lookup，相同文件不支持并发 lookup
+            // - 构建不同文件的 lookup file 可以并行执行，可以使用文件锁
             synchronized (function) {
+                // 还是基于 NewLookupFunction 来做关联
                 return function.lookup(keyRow);
             }
         } catch (IOException e) {
@@ -66,6 +78,7 @@ public class AsyncLookupFunctionWrapper extends AsyncLookupFunction {
 
     @Override
     public CompletableFuture<Collection<RowData>> asyncLookup(RowData keyRow) {
+        // 异步 lookup，就是丢个 task 给 executor 去做.
         return CompletableFuture.supplyAsync(() -> lookup(keyRow), executor());
     }
 
@@ -80,6 +93,7 @@ public class AsyncLookupFunctionWrapper extends AsyncLookupFunction {
 
     private ExecutorService executor() {
         if (lazyExecutor == null) {
+            // 创建一个固定大小的线程池
             lazyExecutor =
                     Executors.newFixedThreadPool(
                             threadNumber,

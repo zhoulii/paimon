@@ -312,6 +312,7 @@ public class PredicateBuilder {
         return pick;
     }
 
+    // 只需要关于 projection 字段的过滤条件，并生成新的 predicate，index 修改为 projection 中的下标
     public static Optional<Predicate> transformFieldMapping(
             Predicate predicate, int[] fieldIdxMapping) {
         if (predicate instanceof CompoundPredicate) {
@@ -329,7 +330,7 @@ public class PredicateBuilder {
         } else {
             LeafPredicate leafPredicate = (LeafPredicate) predicate;
             int mapped = fieldIdxMapping[leafPredicate.index()];
-            if (mapped >= 0) {
+            if (mapped >= 0) { // mapped 表示是当前要判断的字段在 projection 中的文职
                 return Optional.of(
                         new LeafPredicate(
                                 leafPredicate.function(),

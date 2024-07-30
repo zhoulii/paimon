@@ -30,7 +30,9 @@ import java.util.List;
 import java.util.Queue;
 
 /**
- * This reader is to concatenate a list of {@link RecordReader}s and read them sequentially. The
+ * 拼接多个 RecordReader，然后内部顺序读取.
+ *
+ * <p>This reader is to concatenate a list of {@link RecordReader}s and read them sequentially. The
  * input list is already sorted by key and sequence number, and the key intervals do not overlap
  * each other.
  */
@@ -59,6 +61,7 @@ public class ConcatRecordReader<T> implements RecordReader<T> {
     @Nullable
     @Override
     public RecordIterator<T> readBatch() throws IOException {
+        // 顺序读取
         while (true) {
             if (current != null) {
                 RecordIterator<T> iterator = current.readBatch();
@@ -77,6 +80,7 @@ public class ConcatRecordReader<T> implements RecordReader<T> {
 
     @Override
     public void close() throws IOException {
+        // todo: queue 里面的不用关闭吗？
         if (current != null) {
             current.close();
         }

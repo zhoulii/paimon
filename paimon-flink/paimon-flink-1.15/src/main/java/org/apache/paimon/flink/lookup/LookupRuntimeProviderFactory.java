@@ -21,11 +21,18 @@ package org.apache.paimon.flink.lookup;
 import org.apache.flink.table.connector.source.LookupTableSource.LookupRuntimeProvider;
 import org.apache.flink.table.connector.source.TableFunctionProvider;
 
-/** Factory to create {@link LookupRuntimeProvider}. */
+/**
+ * 用于获取 lookup 运行时所需的一些信息.
+ *
+ * <p>和 paimon-flink-common 中同名类的区别是： - 使用 OldLookupFunction - 不支持异步 lookup join
+ *
+ * <p>Factory to create {@link LookupRuntimeProvider}.
+ */
 public class LookupRuntimeProviderFactory {
 
     public static LookupRuntimeProvider create(
             FileStoreLookupFunction function, boolean enableAsync, int asyncThreadNumber) {
+        // TableFunctionProvider 是 LookupRuntimeProvider 子类，能获取 lookup function.
         return TableFunctionProvider.of(new OldLookupFunction(function));
     }
 }

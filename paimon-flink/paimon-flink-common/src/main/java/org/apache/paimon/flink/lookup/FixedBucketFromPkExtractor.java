@@ -28,21 +28,32 @@ import org.apache.paimon.table.sink.KeyAndBucketExtractor;
 
 import static org.apache.paimon.utils.Preconditions.checkArgument;
 
-/** Extractor to extract bucket from the primary key. */
+/**
+ * 从 PK 中提取 bucket. (BUCKET KEY 必须是 PRIMARY KEY 的子集)
+ *
+ * <p>Extractor to extract bucket from the primary key.
+ */
 public class FixedBucketFromPkExtractor implements KeyAndBucketExtractor<InternalRow> {
 
+    // 主键
     private transient InternalRow primaryKey;
 
+    // bucket key 是否等于删除了 partition key 的 primary key
     private final boolean sameBucketKeyAndTrimmedPrimaryKey;
 
+    // bucket 数量
     private final int numBuckets;
 
+    // 从 primary key 中提取 bucket 的 projection
     private final Projection bucketKeyProjection;
 
+    // 从 primary key 中提取 trimmed primary key 的 projection
     private final Projection trimmedPrimaryKeyProjection;
 
+    // 从 primary key 中提取 partition 的 projection
     private final Projection partitionProjection;
 
+    // 提取 log primary key 的 projection
     private final Projection logPrimaryKeyProjection;
 
     public FixedBucketFromPkExtractor(TableSchema schema) {
@@ -50,29 +61,34 @@ public class FixedBucketFromPkExtractor implements KeyAndBucketExtractor<Interna
         checkArgument(numBuckets > 0, "Num bucket is illegal: " + numBuckets);
         this.sameBucketKeyAndTrimmedPrimaryKey =
                 schema.bucketKeys().equals(schema.trimmedPrimaryKeys());
+        // 从 primary key 中提取 bucket 的 projection
         this.bucketKeyProjection =
                 CodeGenUtils.newProjection(
                         schema.logicalPrimaryKeysType(),
                         schema.bucketKeys().stream()
                                 .mapToInt(schema.primaryKeys()::indexOf)
                                 .toArray());
+        // 从 primary key 中提取 trimmed primary key 的 projection
         this.trimmedPrimaryKeyProjection =
                 CodeGenUtils.newProjection(
                         schema.logicalPrimaryKeysType(),
                         schema.trimmedPrimaryKeys().stream()
                                 .mapToInt(schema.primaryKeys()::indexOf)
                                 .toArray());
+        // 从 primary key 中提取 partition 的 projection
         this.partitionProjection =
                 CodeGenUtils.newProjection(
                         schema.logicalPrimaryKeysType(),
                         schema.partitionKeys().stream()
                                 .mapToInt(schema.primaryKeys()::indexOf)
                                 .toArray());
+        // 提取 log primary key 的 projection
         this.logPrimaryKeyProjection =
                 CodeGenUtils.newProjection(
                         schema.logicalRowType(), schema.projection(schema.primaryKeys()));
     }
 
+    // 设置 primary key
     @Override
     public void setRecord(InternalRow record) {
         this.primaryKey = record;
@@ -80,10 +96,12 @@ public class FixedBucketFromPkExtractor implements KeyAndBucketExtractor<Interna
 
     @Override
     public BinaryRow partition() {
+        // 提取 partition
         return partitionProjection.apply(primaryKey);
     }
 
     private BinaryRow bucketKey() {
+        // 提取 bucket KEY
         if (sameBucketKeyAndTrimmedPrimaryKey) {
             return trimmedPrimaryKey();
         }
@@ -93,6 +111,7 @@ public class FixedBucketFromPkExtractor implements KeyAndBucketExtractor<Interna
 
     @Override
     public int bucket() {
+        // 计算 bucket
         BinaryRow bucketKey = bucketKey();
         return KeyAndBucketExtractor.bucket(
                 KeyAndBucketExtractor.bucketKeyHashCode(bucketKey), numBuckets);
@@ -100,11 +119,13 @@ public class FixedBucketFromPkExtractor implements KeyAndBucketExtractor<Interna
 
     @Override
     public BinaryRow trimmedPrimaryKey() {
+        // 获取 trimmed primary key
         return trimmedPrimaryKeyProjection.apply(primaryKey);
     }
 
     @Override
     public BinaryRow logPrimaryKey() {
+        // 获取 log primary key
         return logPrimaryKeyProjection.apply(primaryKey);
     }
 }

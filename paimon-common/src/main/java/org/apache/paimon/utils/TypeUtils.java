@@ -57,6 +57,7 @@ public class TypeUtils {
         return builder.build();
     }
 
+    // 根据 mapping 获取新的 RowType
     public static RowType project(RowType inputType, int[] mapping) {
         List<DataField> fields = inputType.getFields();
         return new RowType(

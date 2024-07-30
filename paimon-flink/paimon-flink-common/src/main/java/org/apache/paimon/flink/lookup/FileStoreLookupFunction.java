@@ -157,11 +157,14 @@ public class FileStoreLookupFunction implements Serializable, Closeable {
 
         if (options.get(LOOKUP_CACHE_MODE) == LookupCacheMode.AUTO
                 && new HashSet<>(table.primaryKeys()).equals(new HashSet<>(joinKeys))) {
+            // 如果 primary keys 和 join keys 相同，并且是自动模式，则优先尝试使用 PrimaryKeyPartialLookupTable
             if (isRemoteServiceAvailable(storeTable)) {
+                // 使用远程查询服务
                 this.lookupTable =
                         PrimaryKeyPartialLookupTable.createRemoteTable(
                                 storeTable, projection, joinKeys);
             } else {
+                // 使用本地查询
                 try {
                     this.lookupTable =
                             PrimaryKeyPartialLookupTable.createLocalTable(
@@ -172,6 +175,7 @@ public class FileStoreLookupFunction implements Serializable, Closeable {
         }
 
         if (lookupTable == null) {
+            // 不能直接查 LSM ，则使用 FullCacheLookupTable
             FullCacheLookupTable.Context context =
                     new FullCacheLookupTable.Context(
                             storeTable,

@@ -25,14 +25,21 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.util.List;
 
-/** A lookup table which provides get and refresh. */
+/**
+ * 在维表 join 时，用于 lookup 数据，并能够刷新 table 的数据.
+ *
+ * <p>A lookup table which provides get and refresh.
+ */
 public interface LookupTable extends Closeable {
 
+    // 根据 partition 过滤
     void specificPartitionFilter(Predicate filter);
 
     void open() throws Exception;
 
+    // 根据 key 获取数据
     List<InternalRow> get(InternalRow key) throws IOException;
 
+    // 刷新表数据
     void refresh() throws Exception;
 }

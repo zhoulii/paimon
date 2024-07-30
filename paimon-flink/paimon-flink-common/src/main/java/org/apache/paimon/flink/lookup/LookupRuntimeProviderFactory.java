@@ -22,7 +22,11 @@ import org.apache.flink.table.connector.source.LookupTableSource.LookupRuntimePr
 import org.apache.flink.table.connector.source.lookup.AsyncLookupFunctionProvider;
 import org.apache.flink.table.connector.source.lookup.LookupFunctionProvider;
 
-/** Factory to create {@link LookupRuntimeProvider}. */
+/**
+ * 用于获取 lookup 运行时所需的一些信息. - 使用 NewLookupFunction - 支持异步 lookup
+ *
+ * <p>Factory to create {@link LookupRuntimeProvider}.
+ */
 public class LookupRuntimeProviderFactory {
 
     public static LookupRuntimeProvider create(

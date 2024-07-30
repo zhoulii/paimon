@@ -36,11 +36,18 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
-/** A {@link LookupTable} for primary key table. */
+/**
+ * 用于根据主键 lookup 主键表.
+ *
+ * <p>join key 和 主键表的主键完全相同（顺序不要求）.
+ *
+ * <p>A {@link LookupTable} for primary key table.
+ */
 public class PrimaryKeyLookupTable extends FullCacheLookupTable {
 
     protected final long lruCacheSize;
 
+    // 用于获取 key
     protected final KeyProjectedRow primaryKeyRow;
 
     @Nullable private final ProjectedRow keyRearrange;
@@ -56,6 +63,7 @@ public class PrimaryKeyLookupTable extends FullCacheLookupTable {
                 table.primaryKeys().stream().mapToInt(fieldNames::indexOf).toArray();
         this.primaryKeyRow = new KeyProjectedRow(primaryKeyMapping);
 
+        // 用于获取 input 中的 KEY 值
         ProjectedRow keyRearrange = null;
         if (!table.primaryKeys().equals(joinKey)) {
             keyRearrange =
@@ -76,21 +84,26 @@ public class PrimaryKeyLookupTable extends FullCacheLookupTable {
     }
 
     protected void createTableState() throws IOException {
+        // K-V 存储
         this.tableState =
                 stateFactory.valueState(
-                        "table",
+                        "table", // column family
                         InternalSerializers.create(
-                                TypeUtils.project(projectedType, primaryKeyRow.indexMapping())),
-                        InternalSerializers.create(projectedType),
+                                TypeUtils.project(
+                                        projectedType,
+                                        primaryKeyRow.indexMapping())), // key serializer
+                        InternalSerializers.create(projectedType), // value serializer
                         lruCacheSize);
     }
 
     @Override
     public List<InternalRow> innerGet(InternalRow key) throws IOException {
+        // 将 input 的 key 转换为维表 的 key
         if (keyRearrange != null) {
             key = keyRearrange.replaceRow(key);
         }
         InternalRow value = tableState.get(key);
+        // 返回空或单值集合
         return value == null ? Collections.emptyList() : Collections.singletonList(value);
     }
 
@@ -102,6 +115,7 @@ public class PrimaryKeyLookupTable extends FullCacheLookupTable {
             primaryKeyRow.replaceRow(row);
             if (userDefinedSeqComparator != null) {
                 InternalRow previous = tableState.get(primaryKeyRow);
+                // 变更后 sequence field 大才需要更新本地数据
                 if (previous != null && userDefinedSeqComparator.compare(previous, row) > 0) {
                     continue;
                 }
@@ -111,6 +125,7 @@ public class PrimaryKeyLookupTable extends FullCacheLookupTable {
                 if (predicate == null || predicate.test(row)) {
                     tableState.put(primaryKeyRow, row);
                 } else {
+                    // 更新后的数据不符合过滤条件，则需要从本地删除
                     // The new record under primary key is filtered
                     // We need to delete this primary key as it no longer exists.
                     tableState.delete(primaryKeyRow);
@@ -123,15 +138,18 @@ public class PrimaryKeyLookupTable extends FullCacheLookupTable {
 
     @Override
     public byte[] toKeyBytes(InternalRow row) throws IOException {
+        // 序列化 KEY
         primaryKeyRow.replaceRow(row);
         return tableState.serializeKey(primaryKeyRow);
     }
 
     @Override
     public byte[] toValueBytes(InternalRow row) throws IOException {
+        // 序列化 VALUE
         return tableState.serializeValue(row);
     }
 
+    // 用于将数据批量导入 rocksdb.
     @Override
     public TableBulkLoader createBulkLoader() {
         BulkLoader bulkLoader = tableState.createBulkLoader();

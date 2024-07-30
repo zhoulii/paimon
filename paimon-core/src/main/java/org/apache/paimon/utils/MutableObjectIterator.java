@@ -21,7 +21,9 @@ package org.apache.paimon.utils;
 import java.io.IOException;
 
 /**
- * A simple iterator interface. The key differences to the {@link java.util.Iterator} are
+ * 和 java.util.Iterator 区别在于有两个 next 方法，其中一个能传递可复用对象，hasNext 和 next 逻辑都封装在 next 方法里.
+ *
+ * <p>A simple iterator interface. The key differences to the {@link java.util.Iterator} are
  *
  * <ul>
  *   <li>It has two distinct <code>next()</code>, where one variant allows to pass an object that

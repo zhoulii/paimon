@@ -562,6 +562,7 @@ public class CoreOptions implements Serializable {
                     .withDescription(
                             "Optional tag name used in case of \"from-snapshot\" scan mode.");
 
+    // 给 spark time travel 使用
     @ExcludeFromDocumentation("Internal use only")
     public static final ConfigOption<String> SCAN_VERSION =
             key("scan.version")
@@ -571,6 +572,7 @@ public class CoreOptions implements Serializable {
                             "Specify the time travel version string used in 'VERSION AS OF' syntax. "
                                     + "We will use tag when both tag and snapshot of that version exist.");
 
+    // 当 watermark 大于某个值时，则停止 scan
     public static final ConfigOption<Long> SCAN_BOUNDED_WATERMARK =
             key("scan.bounded.watermark")
                     .longType()
@@ -1846,6 +1848,7 @@ public class CoreOptions implements Serializable {
                         + "without producing a snapshot at the beginning. "
                         + "For batch sources, behaves the same as the \"latest-full\" startup mode."),
 
+        // 第一次先读取 compact 类型的 snapshot
         COMPACTED_FULL(
                 "compacted-full",
                 "For streaming sources, produces a snapshot after the latest compaction on the table "

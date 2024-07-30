@@ -28,10 +28,16 @@ import javax.annotation.Nullable;
 
 import java.util.List;
 
-/** A {@link FieldsComparator} for user defined sequence fields. */
+/**
+ * 比较 sequence field.
+ *
+ * <p>A {@link FieldsComparator} for user defined sequence fields.
+ */
 public class UserDefinedSeqComparator implements FieldsComparator {
 
+    // sequence field 在 projection fields 中的下标
     private final int[] fields;
+    // sequence field 比较器，由 codegen 生成，用于比较 Record 中的 sequence 字段
     private final RecordComparator comparator;
 
     public UserDefinedSeqComparator(int[] fields, RecordComparator comparator) {

@@ -189,7 +189,11 @@ public class ParallelExecution<T, E> implements Closeable {
         };
     }
 
-    /** A batch provides next and extra message. */
+    /**
+     * 表示一个 batch 数据，next 方法获取下一条数据，extraMessage 获取额外信息.
+     *
+     * <p>A batch provides next and extra message.
+     */
     public interface ParallelBatch<T, E> {
 
         @Nullable

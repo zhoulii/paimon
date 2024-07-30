@@ -39,7 +39,10 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 /**
- * An util class to wrap {@link ParallelExecution} to parallel execution for {@link Split} reader.
+ * 并发读取 Split.
+ *
+ * <p>An util class to wrap {@link ParallelExecution} to parallel execution for {@link Split}
+ * reader.
  */
 public class SplitsParallelReadUtil {
 
@@ -59,6 +62,8 @@ public class SplitsParallelReadUtil {
                 (row, unused) -> row);
     }
 
+    // extraFunction: 用于根据 Split 来生成一些额外信息，如根据 Split 来获取 partition 和 bucket 信息.
+    // addExtraToRow：将 extraFunction 提取到的信息拼接到数据 row 中.
     public static <EXTRA> RecordReader<InternalRow> parallelExecute(
             RowType projectedType,
             FunctionWithIOException<Split, RecordReader<InternalRow>> readBuilder,
@@ -67,6 +72,7 @@ public class SplitsParallelReadUtil {
             int parallelism,
             Function<Split, EXTRA> extraFunction,
             BiFunction<InternalRow, EXTRA, InternalRow> addExtraToRow) {
+        // 创建每个 Split 的 reader，并封装一些从 Split 提取到的信息
         List<Supplier<Pair<RecordReader<InternalRow>, EXTRA>>> suppliers = new ArrayList<>();
         for (Split split : splits) {
             suppliers.add(
@@ -103,6 +109,8 @@ public class SplitsParallelReadUtil {
                     return null;
                 }
 
+                // 将 ParallelBatch 转换为 RecordIterator，实际上就是使用 ParallelBatch 的 next() 方法来获取数据
+                // 然后拼接额外信息
                 return new RecordIterator<InternalRow>() {
                     @Nullable
                     @Override

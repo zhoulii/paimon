@@ -277,6 +277,7 @@ public class FlinkConnectorOptions {
                     .defaultValue(false)
                     .withDescription("Whether to enable async lookup join.");
 
+    // 作业初始化阶段，异步构建本地 lookup 缓存所使用的线程数
     public static final ConfigOption<Integer> LOOKUP_BOOTSTRAP_PARALLELISM =
             ConfigOptions.key("lookup.bootstrap-parallelism")
                     .intType()
@@ -363,9 +364,11 @@ public class FlinkConnectorOptions {
 
     /** The mode of lookup cache. */
     public enum LookupCacheMode {
+        // 表示使用部分缓存模式，也就是直接查询 LSM 的模式
         /** Auto mode, try to use partial mode. */
         AUTO,
 
+        // 表示使用全量缓存模式。
         /** Use full caching mode. */
         FULL
     }

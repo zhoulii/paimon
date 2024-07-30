@@ -51,7 +51,11 @@ import java.util.stream.IntStream;
 import static org.apache.paimon.flink.FlinkConnectorOptions.LOOKUP_BOOTSTRAP_PARALLELISM;
 import static org.apache.paimon.predicate.PredicateBuilder.transformFieldMapping;
 
-/** A streaming reader to load data into {@link LookupTable}. */
+/**
+ * 给 full cache 模式的 lookup table 加载数据.
+ *
+ * <p>A streaming reader to load data into {@link LookupTable}.
+ */
 public class LookupStreamingReader {
 
     private final Table table;
@@ -60,6 +64,7 @@ public class LookupStreamingReader {
     @Nullable private final Predicate projectedPredicate;
     private final StreamTableScan scan;
 
+    // time travel 属性
     private static final List<ConfigOption<?>> TIME_TRAVEL_OPTIONS =
             Arrays.asList(
                     CoreOptions.SCAN_TIMESTAMP_MILLIS,
@@ -79,6 +84,9 @@ public class LookupStreamingReader {
             List<String> fieldNames = table.rowType().getFieldNames();
             List<String> primaryKeys = table.primaryKeys();
 
+            // 表示要不要根据某个字段过滤
+            // 主键表：只根据主键过滤
+            // 非主键表：可以根据所有字段过滤
             // for pk table: only filter by pk, the stream is upsert instead of changelog
             // for non-pk table: filter all
             IntUnaryOperator operator =
@@ -89,9 +97,11 @@ public class LookupStreamingReader {
                         return safeFilter ? index : -1;
                     };
 
+            // 过滤字段在 projection 中的索引
             int[] fieldIdxToProjectionIdx =
                     IntStream.range(0, table.rowType().getFieldCount()).map(operator).toArray();
 
+            // 裁剪 predicate 并将 predicate index 转换为 projection 中的索引
             this.projectedPredicate =
                     transformFieldMapping(predicate, fieldIdxToProjectionIdx).orElse(null);
         } else {
@@ -100,10 +110,12 @@ public class LookupStreamingReader {
     }
 
     private Table unsetTimeTravelOptions(Table origin) {
+        // 移除 time travel options
         FileStoreTable fileStoreTable = (FileStoreTable) origin;
         Map<String, String> newOptions = new HashMap<>(fileStoreTable.options());
         TIME_TRAVEL_OPTIONS.stream().map(ConfigOption::key).forEach(newOptions::remove);
 
+        // 设置 scan.mode
         CoreOptions.StartupMode startupMode = CoreOptions.fromMap(newOptions).startupMode();
         if (startupMode != CoreOptions.StartupMode.COMPACTED_FULL) {
             startupMode = CoreOptions.StartupMode.LATEST_FULL;
@@ -114,6 +126,9 @@ public class LookupStreamingReader {
         return fileStoreTable.copy(newSchema);
     }
 
+    // 是否并发加载数据
+    // - 启动时候并发加载
+    // - refresh 时不允许并发加载
     public RecordReader<InternalRow> nextBatch(boolean useParallelism) throws Exception {
         List<Split> splits = scan.plan().splits();
         CoreOptions options = CoreOptions.fromMap(table.options());
@@ -124,6 +139,7 @@ public class LookupStreamingReader {
 
         RecordReader<InternalRow> reader;
         if (useParallelism) {
+            // 支持并发读取 Split 数据
             reader =
                     SplitsParallelReadUtil.parallelExecute(
                             readType,
@@ -134,12 +150,14 @@ public class LookupStreamingReader {
         } else {
             List<ConcatRecordReader.ReaderSupplier<InternalRow>> readers = new ArrayList<>();
             for (Split split : splits) {
+                // 创建多个 Reader，每个 Reader 读取一个 Split
                 readers.add(() -> readerSupplier.apply(split));
             }
             reader = ConcatRecordReader.create(readers);
         }
 
         if (projectedPredicate != null) {
+            // 添加过滤条件
             reader = reader.filter(projectedPredicate::test);
         }
         return reader;

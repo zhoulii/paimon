@@ -19,7 +19,7 @@
 package org.apache.paimon.lookup;
 
 /**
- * lookup 策略.
+ * lookup 策略，判断哪些情况下使用 lookup compaction.
  *
  * <p>Strategy for lookup.
  */

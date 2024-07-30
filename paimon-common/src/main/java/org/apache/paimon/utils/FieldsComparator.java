@@ -22,7 +22,11 @@ import org.apache.paimon.data.InternalRow;
 
 import java.util.Comparator;
 
-/** A {@link Comparator} to compare fields for {@link InternalRow}. */
+/**
+ * 同时比较多个字段.
+ *
+ * <p>A {@link Comparator} to compare fields for {@link InternalRow}.
+ */
 public interface FieldsComparator extends Comparator<InternalRow> {
 
     int[] compareFields();

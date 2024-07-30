@@ -31,7 +31,16 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-/** A {@link LookupTable} for primary key table which provides lookup by secondary key. */
+/**
+ * lookup 时，不仅使用主键，还使用其他字段进行关联. 包含两种情况： - join key 包含全部 primary key. - join key 包含部分 primary key.
+ *
+ * <p>使用到了 RocksDBValueState 和 RocksDBSetState，存储方式为： - 一级索引使用 RocksDBValueState 存储：pk -> value -
+ * 二级索引使用 RocksDBSetState 存储：join key -> pk
+ *
+ * <p>查找方式是： - 查询二级索引，获取 join key 对应满足查询条件的 pk 集合 - 查询一级索引，遍历 pk 集合，根据 pk 获取 value
+ *
+ * <p>A {@link LookupTable} for primary key table which provides lookup by secondary key.
+ */
 public class SecondaryIndexLookupTable extends PrimaryKeyLookupTable {
 
     private final KeyProjectedRow secKeyRow;
@@ -49,6 +58,9 @@ public class SecondaryIndexLookupTable extends PrimaryKeyLookupTable {
     public void open() throws Exception {
         openStateFactory();
         createTableState();
+        // KEY - SET 存储
+        // KEY 是 JOIN KEY
+        // VALUE 是对应的可能 PRIMARY KEY
         this.indexState =
                 stateFactory.setState(
                         "sec-index",
@@ -62,9 +74,11 @@ public class SecondaryIndexLookupTable extends PrimaryKeyLookupTable {
 
     @Override
     public List<InternalRow> innerGet(InternalRow key) throws IOException {
+        // 获取符合条件的 primary key
         List<InternalRow> pks = indexState.get(key);
         List<InternalRow> values = new ArrayList<>(pks.size());
         for (InternalRow pk : pks) {
+            // 根据 primary key 查找
             InternalRow row = tableState.get(pk);
             if (row != null) {
                 values.add(row);
@@ -80,6 +94,7 @@ public class SecondaryIndexLookupTable extends PrimaryKeyLookupTable {
             InternalRow row = incremental.next();
             primaryKeyRow.replaceRow(row);
 
+            // 是否拉取过数据
             boolean previousFetched = false;
             InternalRow previous = null;
             if (userDefinedSeqComparator != null) {
@@ -95,6 +110,7 @@ public class SecondaryIndexLookupTable extends PrimaryKeyLookupTable {
                     previous = tableState.get(primaryKeyRow);
                 }
                 if (previous != null) {
+                    // 更新二级索引，删除 join key 对应的 primary key 集合中删除 primaryKeyRow
                     indexState.retract(secKeyRow.replaceRow(previous), primaryKeyRow);
                 }
 
@@ -113,6 +129,7 @@ public class SecondaryIndexLookupTable extends PrimaryKeyLookupTable {
 
     @Override
     public void bulkLoadWritePlus(byte[] key, byte[] value) throws IOException {
+        // 更新二级索引
         InternalRow row = tableState.deserializeValue(value);
         indexState.add(secKeyRow.replaceRow(row), primaryKeyRow.replaceRow(row));
     }
