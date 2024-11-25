@@ -31,18 +31,20 @@ public class ParquetInputFile implements InputFile {
 
     private final FileIO fileIO;
     private final FileStatus stat;
+    private final Path path;
 
     public static ParquetInputFile fromPath(FileIO fileIO, Path path) throws IOException {
-        return new ParquetInputFile(fileIO, fileIO.getFileStatus(path));
+        return new ParquetInputFile(fileIO, path);
     }
 
-    private ParquetInputFile(FileIO fileIO, FileStatus stat) {
+    private ParquetInputFile(FileIO fileIO, Path path) throws IOException {
         this.fileIO = fileIO;
-        this.stat = stat;
+        this.stat = fileIO.getFileStatus(path);
+        this.path = path;
     }
 
     public Path getPath() {
-        return stat.getPath();
+        return path;
     }
 
     @Override
@@ -52,7 +54,7 @@ public class ParquetInputFile implements InputFile {
 
     @Override
     public ParquetInputStream newStream() throws IOException {
-        return new ParquetInputStream(fileIO.newInputStream(stat.getPath()));
+        return new ParquetInputStream(fileIO.newInputStream(path));
     }
 
     @Override
