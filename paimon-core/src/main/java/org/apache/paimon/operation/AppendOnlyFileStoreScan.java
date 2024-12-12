@@ -25,6 +25,7 @@ import org.apache.paimon.manifest.ManifestFile;
 import org.apache.paimon.predicate.Predicate;
 import org.apache.paimon.schema.SchemaManager;
 import org.apache.paimon.schema.TableSchema;
+import org.apache.paimon.stats.SimpleStats;
 import org.apache.paimon.stats.SimpleStatsEvolution;
 import org.apache.paimon.stats.SimpleStatsEvolutions;
 import org.apache.paimon.types.RowType;
@@ -81,6 +82,10 @@ public class AppendOnlyFileStoreScan extends AbstractFileStoreScan {
     @Override
     protected boolean filterByStats(ManifestEntry entry) {
         if (filter == null) {
+            return true;
+        }
+
+        if (entry.file().valueStats().equals(SimpleStats.EMPTY_STATS)) {
             return true;
         }
 
