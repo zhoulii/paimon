@@ -796,9 +796,10 @@ public class SnapshotManager implements Serializable {
         if (snapshotId != null && snapshotId > 0) {
             long nextSnapshot = snapshotId + 1;
             // it is the latest only there is no next one
-            if (!fileIO.exists(file.apply(nextSnapshot))) {
-                return snapshotId;
+            while (fileIO.exists(file.apply(nextSnapshot))) {
+                nextSnapshot++;
             }
+            return nextSnapshot - 1;
         }
         return findByListFiles(Math::max, dir, prefix);
     }
