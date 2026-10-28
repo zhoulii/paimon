@@ -71,6 +71,9 @@ public class CachingCatalog extends DelegateCatalog {
 
     protected Cache<String, Database> databaseCache;
     protected Cache<Identifier, Table> tableCache;
+    // Keep deferred tables separate so SQL metadata lookups cannot bypass SDK loading validation.
+    private Cache<Identifier, Table> planningTableCache;
+
     @Nullable protected final SegmentsCache<Path> manifestCache;
     @Nullable protected final SegmentsCache<Path> manifestSidecarCache;
     // partition cache will affect data latency
@@ -148,6 +151,14 @@ public class CachingCatalog extends DelegateCatalog {
                         .expireAfterWrite(expireAfterWrite)
                         .ticker(ticker)
                         .build();
+        this.planningTableCache =
+                Caffeine.newBuilder()
+                        .softValues()
+                        .executor(Runnable::run)
+                        .expireAfterAccess(expireAfterAccess)
+                        .expireAfterWrite(expireAfterWrite)
+                        .ticker(ticker)
+                        .build();
         this.partitionCache =
                 cachedPartitionMaxNum == 0
                         ? null
@@ -207,6 +218,7 @@ public class CachingCatalog extends DelegateCatalog {
                 }
             }
             tables.forEach(tableCache::invalidate);
+            planningTableCache.asMap().keySet().removeIf(id -> id.getDatabaseName().equals(name));
         }
     }
 
@@ -284,9 +296,30 @@ public class CachingCatalog extends DelegateCatalog {
     }
 
     private Table loadTable(Identifier identifier) {
+        return loadTable(identifier, false);
+    }
+
+    @Override
+    public Table getTableForPlanning(Identifier identifier) throws TableNotExistException {
+        if (CatalogUtils.overridesTableLoading(this, CachingCatalog.class)
+                || identifier.isSystemTable()
+                || SYSTEM_DATABASE_NAME.equals(identifier.getDatabaseName())) {
+            return getTable(identifier);
+        }
+        try {
+            return planningTableCache.get(identifier, id -> loadTable(id, true));
+        } catch (TableLoadingException e) {
+            throw e.tableNotExistException();
+        }
+    }
+
+    private Table loadTable(Identifier identifier, boolean forPlanning) {
         Table table;
         try {
-            table = wrapped.getTable(identifier);
+            table =
+                    forPlanning
+                            ? wrapped.getTableForPlanning(identifier)
+                            : wrapped.getTable(identifier);
         } catch (TableNotExistException e) {
             throw new TableLoadingException(e);
         }
@@ -401,15 +434,21 @@ public class CachingCatalog extends DelegateCatalog {
 
     @Override
     public void invalidateTable(Identifier identifier) {
-        tableCache.invalidate(identifier);
+        invalidateTableAndBranches(tableCache, identifier);
+        invalidateTableAndBranches(planningTableCache, identifier);
         if (partitionCache != null) {
             partitionCache.invalidate(identifier);
         }
+    }
+
+    private static void invalidateTableAndBranches(
+            Cache<Identifier, Table> cache, Identifier identifier) {
+        cache.invalidate(identifier);
         // clear all branches of this table
-        for (Identifier i : tableCache.asMap().keySet()) {
+        for (Identifier i : cache.asMap().keySet()) {
             if (identifier.getTableName().equals(i.getTableName())
                     && identifier.getDatabaseName().equals(i.getDatabaseName())) {
-                tableCache.invalidate(i);
+                cache.invalidate(i);
             }
         }
     }
@@ -434,7 +473,7 @@ public class CachingCatalog extends DelegateCatalog {
      */
     public CacheSizes estimatedCacheSizes() {
         long databaseCacheSize = databaseCache.estimatedSize();
-        long tableCacheSize = tableCache.estimatedSize();
+        long tableCacheSize = tableCache.estimatedSize() + planningTableCache.estimatedSize();
         long manifestCacheSize = 0L;
         long manifestCacheBytes = 0L;
         if (manifestCache != null) {

@@ -64,7 +64,7 @@ class SparkTableWithRowLevelOps(tableArg: Table)
 
   override def newRowLevelOperationBuilder(
       info: RowLevelOperationInfo): RowLevelOperationBuilder = {
-    table match {
+    getTable match {
       case t: FileStoreTable =>
         if (SparkTable.supportsV2DeltaOps(this)) { () => new PaimonSparkDeltaOperation(t, info) }
         else { () => new PaimonSparkCopyOnWriteOperation(t, info) }
@@ -118,7 +118,7 @@ object SparkTable {
   private def supportsV2CopyOnWriteOps(sparkTable: SparkTable): Boolean = {
     if (org.apache.spark.SPARK_VERSION < "3.5") return false
     if (!sparkTable.useV2Write) return false
-    sparkTable.getTable match {
+    sparkTable.table match {
       case fs: FileStoreTable =>
         val supportsRowTrackingCopyOnWrite =
           !sparkTable.coreOptions.rowTrackingEnabled() || org.apache.spark.SPARK_VERSION >= "4.0"
@@ -147,7 +147,7 @@ object SparkTable {
   def supportsV2DeltaOps(sparkTable: SparkTable): Boolean = {
     if (org.apache.spark.SPARK_VERSION < "3.5") return false
     if (!sparkTable.useV2Write) return false
-    sparkTable.getTable match {
+    sparkTable.table match {
       case fs: FileStoreTable =>
         fs.primaryKeys().isEmpty &&
         fs.bucketMode() == BucketMode.BUCKET_UNAWARE &&

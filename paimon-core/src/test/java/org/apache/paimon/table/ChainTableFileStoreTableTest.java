@@ -137,6 +137,29 @@ public class ChainTableFileStoreTableTest {
                                                                                         keyRange))));
     }
 
+    @Test
+    public void testPlanningTableLoadsChainBranches() throws Exception {
+        createChainTable(options -> {});
+        FileStoreTable table = loadTable();
+        writeWithCommit(
+                table.switchToBranch(SNAPSHOT_BRANCH),
+                row(1L, 1L, "old", "CN", "20250810", "20"),
+                row(2L, 1L, "retained", "CN", "20250810", "20"));
+        writeWithCommit(
+                table.switchToBranch(DELTA_BRANCH), row(1L, 2L, "new", "CN", "20250811", "20"));
+        LazyFileStoreTable planning =
+                new LazyFileStoreTable(
+                        table.fileIO(),
+                        table.location(),
+                        table.schema(),
+                        table.catalogEnvironment());
+        assertThat(planning.wrapped()).isInstanceOf(ChainTableFileStoreTable.class);
+        assertThat(getResult(planning, ImmutableMap.of("dt", "20250811", "hour", "20")))
+                .containsExactlyInAnyOrder(
+                        row(1L, 2L, "new", "CN", "20250811", "20"),
+                        row(2L, 1L, "retained", "CN", "20250811", "20"));
+    }
+
     @ParameterizedTest
     @MethodSource("filterPushdownParams")
     public void testFilterPushdownAcrossChainMerge(

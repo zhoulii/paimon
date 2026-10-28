@@ -345,7 +345,7 @@ abstract class AbstractFileStoreTable implements FileStoreTable {
         return copyInternal(dynamicOptions, false);
     }
 
-    private void checkImmutability(Map<String, String> dynamicOptions) {
+    void checkImmutability(Map<String, String> dynamicOptions) {
         Map<String, String> oldOptions = tableSchema.options();
         // check option is not immutable
         dynamicOptions.forEach(
@@ -361,6 +361,35 @@ abstract class AbstractFileStoreTable implements FileStoreTable {
 
     protected FileStoreTable copyInternal(
             Map<String, String> dynamicOptions, boolean tryTimeTravel) {
+        return copyWithSchema(copySchema(dynamicOptions, tryTimeTravel), dynamicOptions);
+    }
+
+    FileStoreTable copyWithSchema(TableSchema newTableSchema, Map<String, String> dynamicOptions) {
+        // validate schema with new options
+        SchemaValidation.validateTableSchema(
+                withoutIcebergMirror(newTableSchema), dynamicOptions.keySet());
+        if (new CoreOptions(tableSchema.options())
+                        .toConfiguration()
+                        .get(IcebergOptions.METADATA_ICEBERG_STORAGE)
+                == IcebergOptions.StorageType.DISABLED) {
+            // turning the mirror on here publishes the schemas already on disk, which no commit
+            // has judged under these options
+            SchemaValidation.validateHistoricalIcebergTypes(
+                    () -> schemaManager().listAll(), new CoreOptions(newTableSchema.options()));
+        }
+
+        FileStoreTable copied = copy(newTableSchema);
+        if (copied instanceof AbstractFileStoreTable) {
+            Set<String> mergedDynamicOptionKeys = new HashSet<>(dynamicOptions.keySet());
+            if (appliedDynamicOptionKeys != null) {
+                mergedDynamicOptionKeys.addAll(appliedDynamicOptionKeys);
+            }
+            ((AbstractFileStoreTable) copied).appliedDynamicOptionKeys = mergedDynamicOptionKeys;
+        }
+        return copied;
+    }
+
+    TableSchema copySchema(Map<String, String> dynamicOptions, boolean tryTimeTravel) {
         Map<String, String> options = new HashMap<>(tableSchema.options());
 
         // merge dynamic options into schema.options
@@ -396,24 +425,7 @@ abstract class AbstractFileStoreTable implements FileStoreTable {
                     tryTimeTravel(newOptions, mergedDynamicOptionKeys).orElse(newTableSchema);
         }
 
-        // validate schema with new options
-        SchemaValidation.validateTableSchema(
-                withoutIcebergMirror(newTableSchema), dynamicOptions.keySet());
-        if (new CoreOptions(tableSchema.options())
-                        .toConfiguration()
-                        .get(IcebergOptions.METADATA_ICEBERG_STORAGE)
-                == IcebergOptions.StorageType.DISABLED) {
-            // turning the mirror on here publishes the schemas already on disk, which no commit
-            // has judged under these options
-            SchemaValidation.validateHistoricalIcebergTypes(
-                    () -> schemaManager().listAll(), new CoreOptions(newTableSchema.options()));
-        }
-
-        FileStoreTable copied = copy(newTableSchema);
-        if (copied instanceof AbstractFileStoreTable) {
-            ((AbstractFileStoreTable) copied).appliedDynamicOptionKeys = mergedDynamicOptionKeys;
-        }
-        return copied;
+        return newTableSchema;
     }
 
     @Override
@@ -566,7 +578,19 @@ abstract class AbstractFileStoreTable implements FileStoreTable {
         Snapshot snapshot;
         try {
             snapshot =
-                    TimeTravelUtil.tryTravelToSnapshot(options, snapshotManager(), tagManager())
+                    TimeTravelUtil.tryTravelToSnapshot(
+                                    options,
+                                    new SnapshotManager(
+                                            fileIO,
+                                            path,
+                                            currentBranch(),
+                                            catalogEnvironment.snapshotLoader(),
+                                            snapshotCache),
+                                    new TagManager(
+                                            fileIO,
+                                            path,
+                                            currentBranch(),
+                                            new CoreOptions(tableSchema.options())))
                             .orElse(null);
         } catch (Exception e) {
             return Optional.empty();

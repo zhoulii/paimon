@@ -70,7 +70,10 @@ abstract class PaimonSparkTableBase(val table: Table)
     } && coreOptions.clusteringColumns().isEmpty
   }
 
-  def getTable: Table = table
+  def getTable: Table = table match {
+    case lazyTable: LazyFileStoreTable => lazyTable.wrapped()
+    case _ => table
+  }
 
   override def properties: JMap[String, String] = {
     table match {
@@ -161,18 +164,18 @@ abstract class PaimonSparkTableBase(val table: Table)
   }
 
   override def newScanBuilder(options: CaseInsensitiveStringMap): ScanBuilder = {
-    table match {
+    getTable match {
       case t: KnownSplitsTable =>
         new PaimonSplitScanBuilder(t)
       case _: InnerTable =>
-        new PaimonScanBuilder(table.copy(options.asCaseSensitiveMap).asInstanceOf[InnerTable])
+        new PaimonScanBuilder(getTable.copy(options.asCaseSensitiveMap).asInstanceOf[InnerTable])
       case _ =>
         throw new RuntimeException("Only InnerTable can be scanned.")
     }
   }
 
   override def newWriteBuilder(info: LogicalWriteInfo): WriteBuilder = {
-    table match {
+    getTable match {
       case fileStoreTable: FileStoreTable =>
         val options = Options.fromMap(info.options)
         if (useV2Write) {
@@ -186,7 +189,7 @@ abstract class PaimonSparkTableBase(val table: Table)
   }
 
   def truncateTable: Boolean = {
-    val commit = table.newBatchWriteBuilder().newCommit()
+    val commit = getTable.newBatchWriteBuilder().newCommit()
     try {
       commit.truncateTable()
     } finally {

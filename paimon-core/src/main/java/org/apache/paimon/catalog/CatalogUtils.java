@@ -38,6 +38,7 @@ import org.apache.paimon.table.CatalogEnvironment;
 import org.apache.paimon.table.FileStoreTable;
 import org.apache.paimon.table.FileStoreTableFactory;
 import org.apache.paimon.table.FormatTable;
+import org.apache.paimon.table.LazyFileStoreTable;
 import org.apache.paimon.table.Table;
 import org.apache.paimon.table.TableSnapshot;
 import org.apache.paimon.table.format.FormatTablePartitionManager;
@@ -87,6 +88,28 @@ import static org.apache.paimon.utils.Preconditions.checkArgument;
 
 /** Utils for {@link Catalog}. */
 public class CatalogUtils {
+
+    private static final ClassValue<Class<?>> TABLE_LOADER_CLASS =
+            new ClassValue<Class<?>>() {
+                @Override
+                protected Class<?> computeValue(Class<?> type) {
+                    try {
+                        return type.getMethod("getTable", Identifier.class).getDeclaringClass();
+                    } catch (NoSuchMethodException e) {
+                        throw new IllegalStateException("Catalog must implement getTable", e);
+                    }
+                }
+            };
+
+    /**
+     * Whether getTable(Identifier) is overridden below the given base class. Planning loaders must
+     * preserve these overrides, which may enforce authorization or routing, even if that retains
+     * eager loading. Subclasses can explicitly override getTableForPlanning to opt into lazy
+     * loading.
+     */
+    public static boolean overridesTableLoading(Catalog catalog, Class<? extends Catalog> base) {
+        return !TABLE_LOADER_CLASS.get(catalog.getClass()).isAssignableFrom(base);
+    }
 
     public static Path path(String warehouse, String database, String table) {
         return new Path(String.format("%s/%s.db/%s", warehouse, database, table));
@@ -337,6 +360,31 @@ public class CatalogUtils {
             @Nullable CatalogContext catalogContext,
             boolean isRestCatalog)
             throws Catalog.TableNotExistException {
+        return loadTable(
+                catalog,
+                identifier,
+                internalFileIO,
+                externalFileIO,
+                metadataLoader,
+                lockFactory,
+                lockContext,
+                catalogContext,
+                isRestCatalog,
+                false);
+    }
+
+    public static Table loadTable(
+            Catalog catalog,
+            Identifier identifier,
+            Function<Path, FileIO> internalFileIO,
+            Function<Path, FileIO> externalFileIO,
+            TableMetadata.Loader metadataLoader,
+            @Nullable CatalogLockFactory lockFactory,
+            @Nullable CatalogLockContext lockContext,
+            @Nullable CatalogContext catalogContext,
+            boolean isRestCatalog,
+            boolean forPlanning)
+            throws Catalog.TableNotExistException {
         if (SYSTEM_DATABASE_NAME.equals(identifier.getDatabaseName())) {
             return CatalogUtils.createGlobalSystemTable(identifier.getTableName(), catalog);
         }
@@ -398,7 +446,10 @@ public class CatalogUtils {
                         catalog.supportsPartitionModification());
         Path path = new Path(schema.options().get(PATH.key()));
         FileStoreTable table =
-                FileStoreTableFactory.create(dataFileIO.apply(path), path, schema, catalogEnv);
+                forPlanning && !identifier.isSystemTable()
+                        ? new LazyFileStoreTable(dataFileIO.apply(path), path, schema, catalogEnv)
+                        : FileStoreTableFactory.create(
+                                dataFileIO.apply(path), path, schema, catalogEnv);
 
         if (identifier.isSystemTable()) {
             return CatalogUtils.createSystemTable(identifier, table);

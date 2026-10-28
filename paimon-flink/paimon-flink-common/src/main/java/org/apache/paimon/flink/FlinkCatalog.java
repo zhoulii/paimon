@@ -360,7 +360,7 @@ public class FlinkCatalog extends AbstractCatalog {
             throws TableNotExistException {
         Table table;
         try {
-            table = catalog.getTable(toIdentifier(tablePath));
+            table = catalog.getTableForPlanning(toIdentifier(tablePath));
         } catch (Catalog.TableNotExistException e) {
             Optional<CatalogBaseTable> view = getView(tablePath, timestamp);
             if (view.isPresent()) {
@@ -418,7 +418,7 @@ public class FlinkCatalog extends AbstractCatalog {
     public boolean tableExists(ObjectPath tablePath) throws CatalogException {
         Identifier identifier = toIdentifier(tablePath);
         try {
-            catalog.getTable(identifier);
+            catalog.getTableForPlanning(identifier);
             return true;
         } catch (Catalog.TableNotExistException e) {
             try {
@@ -801,7 +801,7 @@ public class FlinkCatalog extends AbstractCatalog {
 
         Table table;
         try {
-            table = catalog.getTable(toIdentifier(tablePath));
+            table = catalog.getTableForPlanning(toIdentifier(tablePath));
         } catch (Catalog.TableNotExistException e) {
             throw new TableNotExistException(getName(), tablePath);
         }

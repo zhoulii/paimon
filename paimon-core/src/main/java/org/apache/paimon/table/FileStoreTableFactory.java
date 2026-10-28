@@ -97,6 +97,15 @@ public class FileStoreTableFactory {
                 createWithoutFallbackBranch(
                         fileIO, tablePath, tableSchema, dynamicOptions, catalogEnvironment);
 
+        return createWithBranches(table, fileIO, tablePath, dynamicOptions, catalogEnvironment);
+    }
+
+    static FileStoreTable createWithBranches(
+            FileStoreTable table,
+            FileIO fileIO,
+            Path tablePath,
+            Options dynamicOptions,
+            CatalogEnvironment catalogEnvironment) {
         Options options = new Options(table.options());
         String fallbackBranch = options.get(CoreOptions.SCAN_FALLBACK_BRANCH);
         String primaryBranch = options.get(CoreOptions.SCAN_PRIMARY_BRANCH);

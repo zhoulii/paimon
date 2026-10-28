@@ -29,6 +29,7 @@ import org.apache.paimon.schema.Schema;
 import org.apache.paimon.schema.SchemaChange;
 import org.apache.paimon.schema.TableSchema;
 import org.apache.paimon.table.FileStoreTable;
+import org.apache.paimon.table.Table;
 import org.apache.paimon.table.sink.BatchTableCommit;
 import org.apache.paimon.table.sink.BatchTableWrite;
 import org.apache.paimon.table.sink.BatchWriteBuilder;
@@ -63,6 +64,58 @@ public class FileSystemCatalogTest extends CatalogTestBase {
         catalog =
                 new FileSystemCatalog(
                         fileIO, new Path(warehouse), CatalogContext.create(new Options()));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"filesystem", "delegate", "cache"})
+    public void testPlanningPreservesCustomTableLoading(String type) throws Exception {
+        Identifier identifier = Identifier.create("db", "table");
+        Catalog custom;
+        switch (type) {
+            case "filesystem":
+                custom =
+                        new FileSystemCatalog(fileIO, new Path(warehouse)) {
+                            @Override
+                            public Table getTable(Identifier identifier) {
+                                throw new SecurityException("Custom table authorization");
+                            }
+                        };
+                break;
+            case "delegate":
+                custom =
+                        new DelegateCatalog(catalog) {
+                            @Override
+                            public CatalogLoader catalogLoader() {
+                                return wrapped.catalogLoader();
+                            }
+
+                            @Override
+                            public Table getTable(Identifier identifier) {
+                                throw new SecurityException("Custom table authorization");
+                            }
+                        };
+                break;
+            case "cache":
+                custom =
+                        new CachingCatalog(catalog, new Options()) {
+                            @Override
+                            public Table getTable(Identifier identifier) {
+                                throw new SecurityException("Custom table authorization");
+                            }
+                        };
+                break;
+            default:
+                throw new IllegalArgumentException(type);
+        }
+        try (Catalog checked = custom;
+                Catalog cached = new CachingCatalog(checked, new Options())) {
+            assertThatThrownBy(() -> checked.getTableForPlanning(identifier))
+                    .isInstanceOf(SecurityException.class)
+                    .hasMessage("Custom table authorization");
+            assertThatThrownBy(() -> cached.getTableForPlanning(identifier))
+                    .isInstanceOf(SecurityException.class)
+                    .hasMessage("Custom table authorization");
+        }
     }
 
     @Test
@@ -174,6 +227,44 @@ public class FileSystemCatalogTest extends CatalogTestBase {
 
     @ParameterizedTest
     @ValueSource(booleans = {false, true})
+    public void testPlanningTableWithInvalidOptions(boolean cacheEnabled) throws Exception {
+        Identifier identifier = Identifier.create("test_db", "legacy_table");
+        createLegacyTable(identifier, cacheEnabled);
+        FileStoreTable planning = (FileStoreTable) catalog.getTableForPlanning(identifier);
+        assertThat(planning.rowType().getFieldNames()).containsExactly("id", "seq", "v");
+        assertThat(planning.primaryKeys()).containsExactly("id");
+        assertThat(planning.coreOptions().toMap())
+                .containsEntry("fields.seq.sequence-group", "id,v");
+        assertThat(planning.bucketMode()).isEqualTo(org.apache.paimon.table.BucketMode.HASH_FIXED);
+        assertThatThrownBy(() -> catalog.getTable(identifier))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(planning::newScan).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(planning::newRead).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> planning.newWrite("test"))
+                .isInstanceOf(IllegalArgumentException.class);
+
+        catalog.alterTable(
+                identifier,
+                Arrays.asList(
+                        SchemaChange.removeOption("full-compaction.delta-commits"),
+                        SchemaChange.setOption("fields.seq.sequence-group", "v")),
+                false);
+        FileStoreTable repaired = (FileStoreTable) catalog.getTableForPlanning(identifier);
+        assertThat(repaired.schema().id()).isEqualTo(1L);
+        assertThat(repaired.newScan().plan().splits()).isEmpty();
+        // Runtime initialization must not silently switch to the newly committed schema.
+        assertThat(planning.schema().id()).isEqualTo(0L);
+        assertThatThrownBy(planning::newScan).isInstanceOf(IllegalArgumentException.class);
+        assertThat(catalog.getTable(identifier).options())
+                .doesNotContainKey("full-compaction.delta-commits");
+
+        catalog.dropTable(identifier, false);
+        assertThatThrownBy(() -> catalog.getTableForPlanning(identifier))
+                .isInstanceOf(Catalog.TableNotExistException.class);
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
     public void testAlterTableWithInvalidOptions(boolean cacheEnabled) throws Exception {
         Identifier identifier = Identifier.create("test_db", "legacy_table");
         FileSystemSchemaManager schemaManager = createLegacyTable(identifier, cacheEnabled);
@@ -273,6 +364,9 @@ public class FileSystemCatalogTest extends CatalogTestBase {
         FileSystemSchemaManager branchSchemaManager = mainSchemaManager.copyWithBranch("dev");
         writeLegacySchema(branchSchemaManager, legacySchema, 0, legacySchema.options());
         Identifier branchIdentifier = new Identifier("test_db", "legacy_table", "dev");
+        FileStoreTable planning = (FileStoreTable) catalog.getTableForPlanning(branchIdentifier);
+        assertThat(planning.options()).containsEntry(CoreOptions.BRANCH.key(), "dev");
+        assertThatThrownBy(planning::newScan).isInstanceOf(IllegalArgumentException.class);
 
         catalog.alterTable(
                 branchIdentifier,
@@ -284,6 +378,8 @@ public class FileSystemCatalogTest extends CatalogTestBase {
         assertThat(branchSchemaManager.latest().get().id()).isEqualTo(1L);
         assertThat(mainSchemaManager.latest().get().id()).isZero();
         assertThat(catalog.getTable(branchIdentifier).options())
+                .containsEntry("fields.seq.sequence-group", "v");
+        assertThat(catalog.getTableForPlanning(branchIdentifier).options())
                 .containsEntry("fields.seq.sequence-group", "v");
         assertThatThrownBy(() -> catalog.getTable(identifier))
                 .isInstanceOf(IllegalArgumentException.class);

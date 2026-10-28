@@ -36,6 +36,7 @@ import org.apache.paimon.schema.SchemaManager;
 import org.apache.paimon.table.FileStoreTable;
 import org.apache.paimon.table.FileStoreTableFactory;
 import org.apache.paimon.table.FormatTable;
+import org.apache.paimon.table.LazyFileStoreTable;
 import org.apache.paimon.table.Table;
 import org.apache.paimon.utils.Preconditions;
 import org.apache.paimon.utils.SensitiveConfigUtils;
@@ -205,6 +206,9 @@ public abstract class AbstractFlinkTableFactory
                 }
             }
             table = fileStoreTable.copyWithoutTimeTravel(newOptions);
+            if (table instanceof LazyFileStoreTable) {
+                table = ((LazyFileStoreTable) table).wrapped();
+            }
         }
         if (Options.fromMap(table.options()).get(FILESYSTEM_JOB_LEVEL_SETTINGS_ENABLED)) {
             Map<String, String> runtimeContext = getAllOptions(context);

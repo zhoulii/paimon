@@ -163,6 +163,33 @@ public interface Catalog extends AutoCloseable {
     Table getTable(Identifier identifier) throws TableNotExistException;
 
     /**
+     * Load a table for SQL planning and metadata operations, including SHOW CREATE, ALTER and DROP.
+     * Implementations may defer runtime initialization and option validation until the table is
+     * used for reading or writing. This must preserve existing catalog existence and authorization
+     * checks, as well as the table location and FileIO configuration.
+     *
+     * <p>A deferred table must expose its schema and options without constructing the runtime
+     * store. Runtime operations must use that captured schema and catalog environment, including
+     * any dynamic options and time travel applied during planning. Copies with dynamic options may
+     * also defer runtime validation; immutable-option checks still apply.
+     *
+     * <p>The built-in catalogs defer loading for ordinary file-store tables. Other table types and
+     * system tables retain their existing loading behavior. CREATE and ALTER still validate the
+     * resulting schema before committing it.
+     *
+     * <p>The default calls {@link #getTable(Identifier)}. Catalog subclasses that customize that
+     * method retain eager loading unless they explicitly implement this method with equivalent
+     * authorization and routing behavior.
+     *
+     * @param identifier Path of the table
+     * @return The requested table, possibly with deferred runtime initialization
+     * @throws TableNotExistException if the target does not exist
+     */
+    default Table getTableForPlanning(Identifier identifier) throws TableNotExistException {
+        return getTable(identifier);
+    }
+
+    /**
      * Return a {@link Table} identified by the given tableId.
      *
      * @param tableId Id of the table

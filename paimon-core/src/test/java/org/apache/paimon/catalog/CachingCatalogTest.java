@@ -238,6 +238,8 @@ class CachingCatalogTest extends CatalogTestBase {
         Table table = catalog.getTable(tableIdent);
 
         // Ensure table is cached with full ttl remaining upon creation
+        Table planning = catalog.getTableForPlanning(tableIdent);
+        assertThat(catalog.getTableForPlanning(tableIdent)).isSameAs(planning);
         assertThat(catalog.tableCache().asMap()).containsKey(tableIdent);
         assertThat(catalog.remainingAgeFor(tableIdent)).isPresent().get().isEqualTo(EXPIRATION_TTL);
 
@@ -250,6 +252,43 @@ class CachingCatalogTest extends CatalogTestBase {
         assertThat(catalog.getTable(tableIdent))
                 .as("CachingCatalog should return a new instance after expiration")
                 .isNotSameAs(table);
+        assertThat(catalog.getTableForPlanning(tableIdent)).isNotSameAs(planning);
+    }
+
+    @Test
+    public void testPlanningCacheInvalidation() throws Exception {
+        Catalog cached = new CachingCatalog(catalog, new Options());
+        Identifier original = Identifier.create("db", "original");
+        Identifier renamed = Identifier.create("db", "renamed");
+        cached.createTable(original, DEFAULT_TABLE_SCHEMA, false);
+        Table planning = cached.getTableForPlanning(original);
+        cached.getTable(original).createBranch("test");
+        Identifier branch = Identifier.create("db", "original$branch_test");
+        Table branchPlanning = cached.getTableForPlanning(branch);
+
+        cached.alterTable(original, SchemaChange.addColumn("added", DataTypes.INT()), false);
+        assertThat(cached.getTableForPlanning(original).rowType().getFieldNames())
+                .contains("added");
+        assertThat(cached.getTableForPlanning(branch)).isNotSameAs(branchPlanning);
+        assertThat(cached.getTableForPlanning(branch).rowType().getFieldNames())
+                .doesNotContain("added");
+
+        cached.renameTable(original, renamed, false);
+        assertThatThrownBy(() -> cached.getTableForPlanning(original))
+                .isInstanceOf(Catalog.TableNotExistException.class);
+        assertThatThrownBy(() -> cached.getTableForPlanning(branch))
+                .isInstanceOf(Catalog.TableNotExistException.class);
+        assertThat(cached.getTableForPlanning(renamed)).isNotSameAs(planning);
+
+        cached.dropTable(renamed, false);
+        assertThatThrownBy(() -> cached.getTableForPlanning(renamed))
+                .isInstanceOf(Catalog.TableNotExistException.class);
+        cached.createTable(renamed, DEFAULT_TABLE_SCHEMA, false);
+        assertThat(cached.getTableForPlanning(renamed).rowType().getFieldNames())
+                .doesNotContain("added");
+        cached.dropDatabase("db", false, true);
+        assertThatThrownBy(() -> cached.getTableForPlanning(renamed))
+                .isInstanceOf(Catalog.TableNotExistException.class);
     }
 
     @Test

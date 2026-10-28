@@ -609,6 +609,21 @@ public abstract class AbstractCatalog implements Catalog {
 
     @Override
     public Table getTable(Identifier identifier) throws TableNotExistException {
+        return getTable(identifier, false);
+    }
+
+    @Override
+    public Table getTableForPlanning(Identifier identifier) throws TableNotExistException {
+        // The two-argument overload would bypass subclass getTable(Identifier) overrides,
+        // including any authorization or routing they perform.
+        if (CatalogUtils.overridesTableLoading(this, AbstractCatalog.class)) {
+            return getTable(identifier);
+        }
+        return getTable(identifier, true);
+    }
+
+    protected Table getTable(Identifier identifier, boolean forPlanning)
+            throws TableNotExistException {
         return CatalogUtils.loadTable(
                 this,
                 identifier,
@@ -618,7 +633,8 @@ public abstract class AbstractCatalog implements Catalog {
                 lockFactory().orElse(null),
                 lockContext().orElse(null),
                 context,
-                false);
+                false,
+                forPlanning);
     }
 
     @Override

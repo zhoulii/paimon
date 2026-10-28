@@ -426,6 +426,14 @@ public abstract class DelegateCatalog implements Catalog {
     }
 
     @Override
+    public Table getTableForPlanning(Identifier identifier) throws TableNotExistException {
+        if (CatalogUtils.overridesTableLoading(this, DelegateCatalog.class)) {
+            return getTable(identifier);
+        }
+        return wrapped.getTableForPlanning(identifier);
+    }
+
+    @Override
     public View getView(Identifier identifier) throws ViewNotExistException {
         return wrapped.getView(identifier);
     }

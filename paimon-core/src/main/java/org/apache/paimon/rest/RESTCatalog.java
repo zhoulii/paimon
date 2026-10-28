@@ -392,6 +392,19 @@ public class RESTCatalog implements Catalog {
 
     @Override
     public Table getTable(Identifier identifier) throws TableNotExistException {
+        return getTable(identifier, false);
+    }
+
+    @Override
+    public Table getTableForPlanning(Identifier identifier) throws TableNotExistException {
+        if (CatalogUtils.overridesTableLoading(this, RESTCatalog.class)) {
+            return getTable(identifier);
+        }
+        return getTable(identifier, true);
+    }
+
+    private Table getTable(Identifier identifier, boolean forPlanning)
+            throws TableNotExistException {
         return CatalogUtils.loadTable(
                 this,
                 identifier,
@@ -401,7 +414,8 @@ public class RESTCatalog implements Catalog {
                 null,
                 null,
                 context,
-                true);
+                true,
+                forPlanning);
     }
 
     @Override

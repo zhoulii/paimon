@@ -896,7 +896,7 @@ public class HiveCatalog extends AbstractCatalog {
     }
 
     @Override
-    public org.apache.paimon.table.Table getTable(Identifier identifier)
+    protected org.apache.paimon.table.Table getTable(Identifier identifier, boolean forPlanning)
             throws TableNotExistException {
         // Hive table's location can be arbitrarily specified (inherited from the database) and may
         // use a schema different from that of the default warehouse. Even though it is not an
@@ -910,7 +910,8 @@ public class HiveCatalog extends AbstractCatalog {
                 lockFactory().orElse(null),
                 lockContext().orElse(null),
                 context,
-                false);
+                false,
+                forPlanning);
     }
 
     @Override

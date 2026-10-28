@@ -338,6 +338,14 @@ public class HiveCatalogTest extends CatalogTestBase {
         assertThatThrownBy(() -> catalog.getTable(identifier))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("missing");
+        FileStoreTable planning = (FileStoreTable) catalog.getTableForPlanning(identifier);
+        assertThat(planning.location()).isEqualTo(table.location());
+        assertThat(planning.uuid()).isEqualTo(table.uuid());
+        assertThat(planning.options())
+                .containsEntry(CoreOptions.RECORD_LEVEL_TIME_FIELD.key(), "missing");
+        assertThatThrownBy(planning::newScan)
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("missing");
         catalog.alterTable(
                 identifier,
                 SchemaChange.removeOption(CoreOptions.RECORD_LEVEL_TIME_FIELD.key()),

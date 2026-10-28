@@ -71,315 +71,315 @@ public abstract class DelegatedFileStoreTable implements FileStoreTable {
 
     @Override
     public String name() {
-        return wrapped.name();
+        return wrapped().name();
     }
 
     @Override
     public String fullName() {
-        return wrapped.fullName();
+        return wrapped().fullName();
     }
 
     @Override
     public String uuid() {
-        return wrapped.uuid();
+        return wrapped().uuid();
     }
 
     @Override
     public SnapshotReader newSnapshotReader() {
-        return wrapped.newSnapshotReader();
+        return wrapped().newSnapshotReader();
     }
 
     @Override
     public CoreOptions coreOptions() {
-        return wrapped.coreOptions();
+        return wrapped().coreOptions();
     }
 
     @Override
     public SnapshotManager snapshotManager() {
-        return wrapped.snapshotManager();
+        return wrapped().snapshotManager();
     }
 
     @Override
     public ChangelogManager changelogManager() {
-        return wrapped.changelogManager();
+        return wrapped().changelogManager();
     }
 
     @Override
     public SchemaManager schemaManager() {
-        return wrapped.schemaManager();
+        return wrapped().schemaManager();
     }
 
     @Override
     public ConsumerManager consumerManager() {
-        return wrapped.consumerManager();
+        return wrapped().consumerManager();
     }
 
     @Override
     public TagManager tagManager() {
-        return wrapped.tagManager();
+        return wrapped().tagManager();
     }
 
     @Override
     public BranchManager branchManager() {
-        return wrapped.branchManager();
+        return wrapped().branchManager();
     }
 
     @Override
     public Path location() {
-        return wrapped.location();
+        return wrapped().location();
     }
 
     @Override
     public FileIO fileIO() {
-        return wrapped.fileIO();
+        return wrapped().fileIO();
     }
 
     @Override
     public void setManifestCache(SegmentsCache<Path> manifestCache) {
-        wrapped.setManifestCache(manifestCache);
+        wrapped().setManifestCache(manifestCache);
     }
 
     @Nullable
     @Override
     public SegmentsCache<Path> getManifestCache() {
-        return wrapped.getManifestCache();
+        return wrapped().getManifestCache();
     }
 
     @Override
     public void setManifestSidecarCache(SegmentsCache<Path> manifestSidecarCache) {
-        wrapped.setManifestSidecarCache(manifestSidecarCache);
+        wrapped().setManifestSidecarCache(manifestSidecarCache);
     }
 
     @Nullable
     @Override
     public SegmentsCache<Path> getManifestSidecarCache() {
-        return wrapped.getManifestSidecarCache();
+        return wrapped().getManifestSidecarCache();
     }
 
     @Override
     public void setSnapshotCache(Cache<Path, Snapshot> cache) {
-        wrapped.setSnapshotCache(cache);
+        wrapped().setSnapshotCache(cache);
     }
 
     @Override
     public void setStatsCache(Cache<String, Statistics> cache) {
-        wrapped.setStatsCache(cache);
+        wrapped().setStatsCache(cache);
     }
 
     @Override
     public void setDVMetaCache(DVMetaCache cache) {
-        wrapped.setDVMetaCache(cache);
+        wrapped().setDVMetaCache(cache);
     }
 
     @Override
     public TableSchema schema() {
-        return wrapped.schema();
+        return wrapped().schema();
     }
 
     @Override
     public FileStore<?> store() {
-        return wrapped.store();
+        return wrapped().store();
     }
 
     @Override
     public CatalogEnvironment catalogEnvironment() {
-        return wrapped.catalogEnvironment();
+        return wrapped().catalogEnvironment();
     }
 
     @Override
     public Optional<Statistics> statistics() {
-        return wrapped.statistics();
+        return wrapped().statistics();
     }
 
     @Override
     public Optional<Snapshot> latestSnapshot() {
-        return wrapped.latestSnapshot();
+        return wrapped().latestSnapshot();
     }
 
     @Override
     public Snapshot snapshot(long snapshotId) {
-        return wrapped.snapshot(snapshotId);
+        return wrapped().snapshot(snapshotId);
     }
 
     @Override
     public SimpleFileReader<ManifestFileMeta> manifestListReader() {
-        return wrapped.manifestListReader();
+        return wrapped().manifestListReader();
     }
 
     @Override
     public SimpleFileReader<ManifestEntry> manifestFileReader() {
-        return wrapped.manifestFileReader();
+        return wrapped().manifestFileReader();
     }
 
     @Override
     public SimpleFileReader<IndexManifestEntry> indexManifestFileReader() {
-        return wrapped.indexManifestFileReader();
+        return wrapped().indexManifestFileReader();
     }
 
     @Override
     public void rollbackTo(long snapshotId) {
-        wrapped.rollbackTo(snapshotId);
+        wrapped().rollbackTo(snapshotId);
     }
 
     @Override
     public void createTag(String tagName) {
-        wrapped.createTag(tagName);
+        wrapped().createTag(tagName);
     }
 
     @Override
     public void createTag(String tagName, long fromSnapshotId) {
-        wrapped.createTag(tagName, fromSnapshotId);
+        wrapped().createTag(tagName, fromSnapshotId);
     }
 
     @Override
     public void createTag(String tagName, Duration timeRetained) {
-        wrapped.createTag(tagName, timeRetained);
+        wrapped().createTag(tagName, timeRetained);
     }
 
     @Override
     public void createTag(String tagName, long fromSnapshotId, Duration timeRetained) {
-        wrapped.createTag(tagName, fromSnapshotId, timeRetained);
+        wrapped().createTag(tagName, fromSnapshotId, timeRetained);
     }
 
     @Override
     public TagAutoManager newTagAutoManager() {
-        return wrapped.newTagAutoManager();
+        return wrapped().newTagAutoManager();
     }
 
     @Override
     public void renameTag(String tagName, String targetTagName) {
-        wrapped.renameTag(tagName, targetTagName);
+        wrapped().renameTag(tagName, targetTagName);
     }
 
     @Override
     public void replaceTag(String tagName, Long fromSnapshotId, Duration timeRetained) {
-        wrapped.replaceTag(tagName, fromSnapshotId, timeRetained);
+        wrapped().replaceTag(tagName, fromSnapshotId, timeRetained);
     }
 
     @Override
     public void deleteTag(String tagName) {
-        wrapped.deleteTag(tagName);
+        wrapped().deleteTag(tagName);
     }
 
     @Override
     public void rollbackTo(String tagName) {
-        wrapped.rollbackTo(tagName);
+        wrapped().rollbackTo(tagName);
     }
 
     @Override
     public void rollbackSchema(long schemaId) {
-        wrapped.rollbackSchema(schemaId);
+        wrapped().rollbackSchema(schemaId);
     }
 
     @Override
     public void createBranch(String branchName) {
-        wrapped.createBranch(branchName);
+        wrapped().createBranch(branchName);
     }
 
     @Override
     public void createBranch(String branchName, String tagName) {
-        wrapped.createBranch(branchName, tagName);
+        wrapped().createBranch(branchName, tagName);
     }
 
     @Override
     public void createBranch(String branchName, boolean ignoreIfExists) {
-        wrapped.createBranch(branchName, ignoreIfExists);
+        wrapped().createBranch(branchName, ignoreIfExists);
     }
 
     @Override
     public void createBranch(String branchName, String tagName, boolean ignoreIfExists) {
-        wrapped.createBranch(branchName, tagName, ignoreIfExists);
+        wrapped().createBranch(branchName, tagName, ignoreIfExists);
     }
 
     @Override
     public void deleteBranch(String branchName) {
-        wrapped.deleteBranch(branchName);
+        wrapped().deleteBranch(branchName);
     }
 
     @Override
     public void renameBranch(String fromBranch, String toBranch) {
-        wrapped.renameBranch(fromBranch, toBranch);
+        wrapped().renameBranch(fromBranch, toBranch);
     }
 
     @Override
     public void fastForward(String branchName) {
-        wrapped.fastForward(branchName);
+        wrapped().fastForward(branchName);
     }
 
     @Override
     public void mergeBranch(String sourceBranch, String targetBranch) {
-        wrapped.mergeBranch(sourceBranch, targetBranch);
+        wrapped().mergeBranch(sourceBranch, targetBranch);
     }
 
     @Override
     public ExpireSnapshots newExpireSnapshots() {
-        return wrapped.newExpireSnapshots();
+        return wrapped().newExpireSnapshots();
     }
 
     @Override
     public ExpireSnapshots newExpireChangelog() {
-        return wrapped.newExpireChangelog();
+        return wrapped().newExpireChangelog();
     }
 
     @Override
     public DataTableScan newScan() {
-        return wrapped.newScan();
+        return wrapped().newScan();
     }
 
     @Override
     public DataTableScan newScan(SnapshotReaderFactory snapshotReaderFactory) {
-        return wrapped.newScan(snapshotReaderFactory);
+        return wrapped().newScan(snapshotReaderFactory);
     }
 
     @Override
     public StreamDataTableScan newStreamScan() {
-        return wrapped.newStreamScan();
+        return wrapped().newStreamScan();
     }
 
     @Override
     public InnerTableRead newRead() {
-        return wrapped.newRead();
+        return wrapped().newRead();
     }
 
     @Override
     public Optional<WriteSelector> newWriteSelector() {
-        return wrapped.newWriteSelector();
+        return wrapped().newWriteSelector();
     }
 
     @Override
     public TableWriteImpl<?> newWrite(String commitUser) {
-        return wrapped.newWrite(commitUser);
+        return wrapped().newWrite(commitUser);
     }
 
     @Override
     public TableWriteImpl<?> newWrite(String commitUser, @Nullable Integer writeId) {
-        return wrapped.newWrite(commitUser, writeId);
+        return wrapped().newWrite(commitUser, writeId);
     }
 
     @Override
     public TableWriteImpl<?> newPostponeFixedBucketWrite(
             String commitUser, @Nullable Integer writeId) {
-        return wrapped.newPostponeFixedBucketWrite(commitUser, writeId);
+        return wrapped().newPostponeFixedBucketWrite(commitUser, writeId);
     }
 
     @Override
     public TableCommitImpl newCommit(String commitUser) {
-        return wrapped.newCommit(commitUser);
+        return wrapped().newCommit(commitUser);
     }
 
     @Override
     public LocalTableQuery newLocalTableQuery() {
-        return wrapped.newLocalTableQuery();
+        return wrapped().newLocalTableQuery();
     }
 
     @Override
     public boolean supportStreamingReadOverwrite() {
-        return wrapped.supportStreamingReadOverwrite();
+        return wrapped().supportStreamingReadOverwrite();
     }
 
     @Override
     public RowKeyExtractor createRowKeyExtractor() {
-        return wrapped.createRowKeyExtractor();
+        return wrapped().createRowKeyExtractor();
     }
 
     @Override

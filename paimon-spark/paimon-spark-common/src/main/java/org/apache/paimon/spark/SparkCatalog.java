@@ -930,7 +930,10 @@ public class SparkCatalog extends SparkBaseCatalog
                             catalogName, toIdentifier(ident, catalogName), extraOptions);
             org.apache.paimon.table.Table table =
                     copyWithSQLConf(
-                            catalog.getTable(tblIdent), catalogName, tblIdent, extraOptions);
+                            catalog.getTableForPlanning(tblIdent),
+                            catalogName,
+                            tblIdent,
+                            extraOptions);
             if (table instanceof FormatTable) {
                 return toSparkFormatTable(ident, (FormatTable) table);
             } else if (table instanceof IcebergTable) {

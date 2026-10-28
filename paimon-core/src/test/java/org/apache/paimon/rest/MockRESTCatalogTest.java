@@ -62,9 +62,11 @@ import org.apache.paimon.rest.responses.ErrorResponse;
 import org.apache.paimon.schema.FileSystemSchemaManager;
 import org.apache.paimon.schema.Schema;
 import org.apache.paimon.schema.SchemaChange;
+import org.apache.paimon.schema.TableSchema;
 import org.apache.paimon.table.BlobDescriptorReaderFactory;
 import org.apache.paimon.table.FileStoreTable;
 import org.apache.paimon.table.FormatTable;
+import org.apache.paimon.table.Table;
 import org.apache.paimon.table.format.FormatTablePartitionManager;
 import org.apache.paimon.table.sink.BatchTableCommit;
 import org.apache.paimon.types.DataField;
@@ -147,6 +149,53 @@ class MockRESTCatalogTest extends RESTCatalogTest {
     public void tearDown() throws Exception {
         if (restCatalogServer != null) {
             restCatalogServer.shutdown();
+        }
+    }
+
+    @Test
+    void testPlanningTableWithInvalidOptions() throws Exception {
+        Identifier identifier = Identifier.create("planning_metadata", "table");
+        createTable(identifier, Collections.emptyMap(), Collections.singletonList("col1"));
+        FileStoreTable table = (FileStoreTable) catalog.getTable(identifier);
+        TableSchema schema = table.schema();
+        Map<String, String> invalidOptions = new HashMap<>(schema.options());
+        invalidOptions.put(CoreOptions.RECORD_LEVEL_TIME_FIELD.key(), "missing");
+        restCatalogServer.setTableSchema(identifier, schema.copy(invalidOptions));
+
+        FileStoreTable planning = (FileStoreTable) catalog.getTableForPlanning(identifier);
+        assertThat(planning.location()).isEqualTo(table.location());
+        assertThat(planning.uuid()).isEqualTo(table.uuid());
+        assertThat(planning.options())
+                .containsEntry(CoreOptions.RECORD_LEVEL_TIME_FIELD.key(), "missing");
+        assertThatThrownBy(() -> catalog.getTable(identifier))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(planning::newScan).isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void testPlanningTablePreservesCatalogErrors() throws Exception {
+        Identifier identifier = Identifier.create("planning_errors", "table");
+        assertThatThrownBy(() -> catalog.getTableForPlanning(identifier))
+                .isInstanceOf(Catalog.TableNotExistException.class);
+        createTable(identifier, Collections.emptyMap(), Collections.singletonList("col1"));
+        revokeTablePermission(identifier);
+        assertThatThrownBy(() -> catalog.getTableForPlanning(identifier))
+                .isInstanceOf(Catalog.TableNoPermissionException.class);
+    }
+
+    @Test
+    void testPlanningPreservesCustomTableLoading() throws Exception {
+        try (RESTCatalog custom =
+                new RESTCatalog(
+                        CatalogContext.create(Options.fromMap(restCatalog.options())), false) {
+                    @Override
+                    public Table getTable(Identifier identifier) {
+                        throw new SecurityException("Custom table authorization");
+                    }
+                }) {
+            assertThatThrownBy(() -> custom.getTableForPlanning(Identifier.create("db", "table")))
+                    .isInstanceOf(SecurityException.class)
+                    .hasMessage("Custom table authorization");
         }
     }
 
